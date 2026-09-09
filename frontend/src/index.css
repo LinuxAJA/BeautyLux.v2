@@ -1,0 +1,272 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4 usa `prefers-color-scheme` por defecto.
+   Con esta variante el modo oscuro se activa con la clase `.dark` en <html>. */
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------
+   Tokens de diseño BeautyLux
+   Los valores se guardan completos (hsl(...)) para que los
+   modificadores de opacidad de Tailwind (bg-primary/90) funcionen.
+   ------------------------------------------------------------------ */
+:root {
+  --background: hsl(350 20% 98%);
+  --foreground: hsl(340 15% 15%);
+
+  /* Colores de marca */
+  --primary: hsl(340 75% 65%);
+  --primary-foreground: hsl(350 20% 98%);
+  --primary-glow: hsl(345 80% 75%);
+
+  --secondary: hsl(30 85% 85%);
+  --secondary-foreground: hsl(340 15% 15%);
+
+  --accent: hsl(45 95% 70%);
+  --accent-foreground: hsl(340 15% 15%);
+
+  /* Paleta de belleza */
+  --rose-gold: hsl(25 80% 75%);
+  --champagne: hsl(45 60% 88%);
+  --blush: hsl(350 65% 85%);
+  --nude: hsl(25 25% 85%);
+
+  /* Colores de interfaz */
+  --card: hsl(350 20% 99%);
+  --card-foreground: hsl(340 15% 15%);
+
+  --popover: hsl(350 20% 99%);
+  --popover-foreground: hsl(340 15% 15%);
+
+  --muted: hsl(350 15% 95%);
+  --muted-foreground: hsl(340 15% 45%);
+
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(350 20% 98%);
+
+  --success: hsl(150 60% 40%);
+  --success-foreground: hsl(350 20% 98%);
+
+  --border: hsl(350 15% 90%);
+  --input: hsl(350 15% 95%);
+  --ring: hsl(340 75% 65%);
+
+  --radius: 0.75rem;
+
+  /* Gradientes */
+  --gradient-primary: linear-gradient(135deg, hsl(340 75% 65%), hsl(345 80% 75%));
+  --gradient-gold: linear-gradient(135deg, hsl(45 95% 70%), hsl(25 80% 75%));
+  --gradient-sunset: linear-gradient(135deg, hsl(350 65% 85%), hsl(340 75% 65%), hsl(25 80% 75%));
+  --gradient-subtle: linear-gradient(180deg, hsl(350 20% 98%), hsl(350 15% 95%));
+
+  /* Transiciones */
+  --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dark {
+  --background: hsl(340 25% 8%);
+  --foreground: hsl(350 20% 95%);
+
+  --primary: hsl(340 75% 65%);
+  --primary-foreground: hsl(340 25% 8%);
+
+  --secondary: hsl(340 20% 15%);
+  --secondary-foreground: hsl(350 20% 95%);
+
+  --accent: hsl(45 95% 70%);
+  --accent-foreground: hsl(340 25% 8%);
+
+  --card: hsl(340 20% 10%);
+  --card-foreground: hsl(350 20% 95%);
+
+  --popover: hsl(340 20% 10%);
+  --popover-foreground: hsl(350 20% 95%);
+
+  --muted: hsl(340 20% 15%);
+  --muted-foreground: hsl(350 15% 65%);
+
+  --border: hsl(340 20% 20%);
+  --input: hsl(340 20% 15%);
+  --ring: hsl(340 75% 65%);
+
+  --gradient-subtle: linear-gradient(180deg, hsl(340 25% 8%), hsl(340 20% 12%));
+}
+
+/* ------------------------------------------------------------------
+   Puente hacia las utilidades de Tailwind.
+   `inline` hace que las utilidades resuelvan la variable en tiempo de
+   uso, para que los overrides de `.dark` se apliquen correctamente.
+   ------------------------------------------------------------------ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-rose-gold: var(--rose-gold);
+  --color-champagne: var(--champagne);
+  --color-blush: var(--blush);
+  --color-nude: var(--nude);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 12px);
+
+  --shadow-glow: 0 10px 40px -10px hsl(340 75% 65% / 0.3);
+  --shadow-elegant: 0 20px 60px -10px hsl(340 15% 15% / 0.1);
+  --shadow-card: 0 8px 32px -8px hsl(340 15% 15% / 0.08);
+
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-fade-in: fade-in 0.5s ease both;
+  --animate-scale-in: scale-in 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.5s linear infinite;
+}
+
+/* ------------------------------------------------------------------
+   Estilos base
+   ------------------------------------------------------------------ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Utilidades propias del sistema de diseño
+   ------------------------------------------------------------------ */
+@utility hero-gradient {
+  background: var(--gradient-sunset);
+}
+
+@utility gold-gradient {
+  background: var(--gradient-gold);
+}
+
+@utility primary-gradient {
+  background: var(--gradient-primary);
+}
+
+@utility subtle-gradient {
+  background: var(--gradient-subtle);
+}
+
+@utility text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility text-gradient-gold {
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility smooth-transition {
+  transition: var(--transition-smooth);
+}
+
+@utility bounce-transition {
+  transition: var(--transition-bounce);
+}
+
+/* Contenedor estándar de sección */
+@utility container-app {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
