@@ -1,0 +1,90 @@
+"""
+Configuración de la aplicación — equivalente de backend/src/config/env.js.
+
+Usa pydantic-settings para leer y validar las variables de entorno desde `.env`.
+Si falta algo obligatorio o un valor no cumple sus restricciones, el proceso
+falla al arrancar con un mensaje claro (igual que `envSchema.safeParse` en Node).
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from typing import Literal
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(BASE_DIR / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # App
+    ENVIRONMENT: Literal["development", "production", "test"] = "development"
+    PORT: int = Field(default=8000, gt=0)
+    API_PREFIX: str = Field(default="/api", min_length=1)
+    CORS_ORIGIN: str = Field(min_length=1)
+
+    # Base de datos
+    DB_HOST: str = Field(min_length=1)
+    DB_PORT: int = Field(default=3306, gt=0)
+    DB_USER: str = Field(min_length=1)
+    DB_PASSWORD: str = ""
+    DB_NAME: str = Field(min_length=1)
+    DB_CONNECTION_LIMIT: int = Field(default=10, gt=0)
+
+    # JWT
+    JWT_ACCESS_SECRET: str = Field(min_length=32)
+    JWT_ACCESS_EXPIRES_IN: str = Field(default="15m", min_length=1)
+    JWT_ISSUER: str = Field(default="beautylux-api", min_length=1)
+    JWT_AUDIENCE: str = Field(default="beautylux-web", min_length=1)
+
+    # Seguridad / TTL
+    BCRYPT_ROUNDS: int = Field(default=12, ge=8, le=15)
+    REFRESH_TTL_DAYS: int = Field(default=7, gt=0)
+    REFRESH_TTL_REMEMBER_DAYS: int = Field(default=30, gt=0)
+    PASSWORD_RESET_TTL_MINUTES: int = Field(default=30, gt=0)
+    EXPOSE_RESET_TOKEN: bool = False
+
+    @field_validator("JWT_ACCESS_SECRET")
+    @classmethod
+    def _validate_secret_length(cls, value: str) -> str:
+        if len(value) < 32:
+            raise ValueError("JWT_ACCESS_SECRET debe tener al menos 32 caracteres")
+        return value
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT == "production"
+
+    @property
+    def is_test(self) -> bool:
+        return self.ENVIRONMENT == "test"
+
+    @property
+    def jwt_access_expires_seconds(self) -> int:
+        """Convierte JWT_ACCESS_EXPIRES_IN ('15m', '1h', '30s', '2d') a segundos."""
+        value = self.JWT_ACCESS_EXPIRES_IN.strip()
+        units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+        if value[-1] in units:
+            return int(value[:-1]) * units[value[-1]]
+        return int(value)
+
+
+def _load_settings() -> Settings:
+    try:
+        return Settings()  # type: ignore[call-arg]
+    except Exception as error:  # noqa: BLE001
+        print("\n[env] Variables de entorno inválidas o faltantes:\n", file=sys.stderr)
+        print(f"  {error}", file=sys.stderr)
+        print("\nRevisa tu archivo .env contra .env.example y vuelve a intentarlo.\n", file=sys.stderr)
+        sys.exit(1)
+
+
+settings = _load_settings()

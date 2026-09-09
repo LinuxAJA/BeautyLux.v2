@@ -64,11 +64,11 @@ al arrancar y el proceso se detiene con un mensaje claro si falta algo.
 
 ## Usuarios de prueba (creados por `npm run db:seed`)
 
-| Correo | Contraseña | Rol |
-|---|---|---|
-| `admin@beautylux.com` | `Admin123*` | Administrador |
-| `empleado@beautylux.com` | `Empleado123*` | Empleado |
-| `cliente@beautylux.com` | `Cliente123*` | Cliente |
+| Correo                     | Contraseña      | Rol           |
+| -------------------------- | ---------------- | ------------- |
+| `admin@beautylux.com`    | `Admin123*`    | Administrador |
+| `empleado@beautylux.com` | `Empleado123*` | Empleado      |
+| `cliente@beautylux.com`  | `Cliente123*`  | Cliente       |
 
 ## Autenticación
 
@@ -83,14 +83,14 @@ al arrancar y el proceso se detiene con un mensaje claro si falta algo.
 Ver la colección de Postman en `postman/` para el listado completo, con ejemplos y pruebas
 automáticas que encadenan el token entre peticiones.
 
-| Dominio | Base | Notas |
-|---|---|---|
-| Autenticación | `/api/auth` | registro, login, refresh, logout, perfil, recuperación |
-| Usuarios | `/api/users` | admin y empleado (empleado limitado a clientes) |
-| Productos | `/api/products` | lectura pública, escritura admin/empleado |
-| Servicios | `/api/services` | lectura pública, escritura admin/empleado |
-| Categorías | `/api/categories` | lectura pública, escritura solo admin |
-| Metadatos | `/api/health`, `/api/document-types`, `/api/roles`, `/api/permissions`, `/api/audit-logs` | |
+| Dominio        | Base                                                                                                | Notas                                                   |
+| -------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Autenticación | `/api/auth`                                                                                       | registro, login, refresh, logout, perfil, recuperación |
+| Usuarios       | `/api/users`                                                                                      | admin y empleado (empleado limitado a clientes)         |
+| Productos      | `/api/products`                                                                                   | lectura pública, escritura admin/empleado              |
+| Servicios      | `/api/services`                                                                                   | lectura pública, escritura admin/empleado              |
+| Categorías    | `/api/categories`                                                                                 | lectura pública, escritura solo admin                  |
+| Metadatos      | `/api/health`, `/api/document-types`, `/api/roles`, `/api/permissions`, `/api/audit-logs` |                                                         |
 
 ## Pruebas con Postman
 

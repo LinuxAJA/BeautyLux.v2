@@ -1,0 +1,555 @@
+{
+  "info": {
+    "name": "BeautyLux API (FastAPI)",
+    "description": "Colección de pruebas del Cuarto Avance (backend FastAPI). Ejecuta primero la carpeta 1. Auth: el login guarda accessToken automáticamente para el resto de las peticiones. Es la misma cobertura que backend/postman/BeautyLux.postman_collection.json (Tercer Avance, Node.js), apuntando a http://localhost:8000/api, más algunos requests adicionales para evidenciar PATCH de estado y DELETE con éxito sobre usuarios, servicios y categorías.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Registro de usuario (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('no incluye password', () => { pm.expect(body.data.password).to.be.undefined; pm.expect(body.data.passwordHash).to.be.undefined; });",
+                  "pm.environment.set('testEmail', 'postman.test+' + Date.now() + '@example.com');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Tester\",\n  \"documentType\": \"CC\",\n  \"documentNumber\": \"{{$randomInt}}998877\",\n  \"address\": \"Calle de pruebas 123\",\n  \"phone\": \"3009998877\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Postman123*\",\n  \"confirmPassword\": \"Postman123*\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Registro duplicado (409)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('409 conflicto', () => pm.response.to.have.status(409));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Tester\",\n  \"documentType\": \"CC\",\n  \"documentNumber\": \"1122334400\",\n  \"address\": \"Calle de pruebas 123\",\n  \"phone\": \"3009998877\",\n  \"email\": \"admin@beautylux.com\",\n  \"password\": \"Postman123*\",\n  \"confirmPassword\": \"Postman123*\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Registro con datos inválidos (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('trae arreglo errors', () => pm.expect(pm.response.json().errors).to.be.an('array').that.is.not.empty);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"P\",\n  \"lastName\": \"\",\n  \"documentType\": \"CC\",\n  \"documentNumber\": \"1\",\n  \"address\": \"x\",\n  \"phone\": \"123\",\n  \"email\": \"no-es-un-correo\",\n  \"password\": \"123\",\n  \"confirmPassword\": \"456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login admin (200 + JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('trae accessToken', () => pm.expect(body.data.accessToken).to.be.a('string'));",
+                  "pm.test('rol admin', () => pm.expect(body.data.user.role.name).to.eql('admin'));",
+                  "pm.environment.set('accessToken', body.data.accessToken);",
+                  "pm.environment.set('userId', body.data.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@beautylux.com\",\n  \"password\": \"Admin123*\",\n  \"remember\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login contraseña incorrecta (401)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('401 credenciales invalidas', () => pm.response.to.have.status(401));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@beautylux.com\",\n  \"password\": \"contraseña-incorrecta\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login cliente (para pruebas de rol)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const body = pm.response.json();", "pm.environment.set('clientAccessToken', body.data.accessToken);"], "type": "text/javascript" }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"cliente@beautylux.com\",\n  \"password\": \"Cliente123*\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Refrescar sesión (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));", "pm.environment.set('accessToken', pm.response.json().data.accessToken);"], "type": "text/javascript" }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": { "mode": "raw", "raw": "" },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Perfil autenticado (/me)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Solicitar recuperación de contraseña",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json().data.resetToken;",
+                  "if (token) pm.environment.set('resetToken', token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"cliente@beautylux.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "Login admin otra vez (para el resto de la colección)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.environment.set('accessToken', body.data.accessToken);"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@beautylux.com\",\n  \"password\": \"Admin123*\",\n  \"remember\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Usuarios",
+      "item": [
+        {
+          "name": "GET /users sin token (401)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('401', () => pm.response.to.have.status(401));"], "type": "text/javascript" } }],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] } }
+        },
+        {
+          "name": "GET /users con token cliente (403)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403', () => pm.response.to.have.status(403));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "GET /users con token admin (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('trae meta de paginacion', () => pm.expect(pm.response.json().meta.total).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users?perPage=10", "host": ["{{baseUrl}}"], "path": ["users"], "query": [{ "key": "perPage", "value": "10" }] }
+          }
+        },
+        {
+          "name": "PUT /users/:id actualizar",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"address\": \"Nueva dirección 456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /users/:id/status (autodesactivarse → 403)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 no puede autodesactivarse', () => pm.response.to.have.status(403));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"inactive\"\n}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/status", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "status"] }
+          }
+        },
+        {
+          "name": "POST /users (admin crea usuario, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('newUserId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Empleado\",\n  \"lastName\": \"Postman\",\n  \"documentType\": \"CC\",\n  \"documentNumber\": \"{{$randomInt}}112233\",\n  \"address\": \"Calle Postman 45\",\n  \"phone\": \"3005556677\",\n  \"email\": \"empleado.postman+{{$randomInt}}@example.com\",\n  \"password\": \"Postman123*\",\n  \"role\": \"employee\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "PATCH /users/:id/status (desactivar usuario nuevo, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('estado inactivo', () => pm.expect(pm.response.json().data.status).to.eql('inactive'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"inactive\"\n}" },
+            "url": { "raw": "{{baseUrl}}/users/{{newUserId}}/status", "host": ["{{baseUrl}}"], "path": ["users", "{{newUserId}}", "status"] }
+          }
+        },
+        {
+          "name": "DELETE /users/:id (eliminar usuario nuevo, 200)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{newUserId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{newUserId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Productos",
+      "item": [
+        {
+          "name": "GET /products público (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json().data;",
+                  "if (items.length) pm.environment.set('productId', items[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] } }
+        },
+        {
+          "name": "POST /products (admin, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('201 creado', () => pm.response.to.have.status(201));", "pm.environment.set('productId', pm.response.json().data.id);"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"SKU-POSTMAN-{{$randomInt}}\",\n  \"name\": \"Producto de Postman\",\n  \"price\": 25000,\n  \"stock\": 5\n}" },
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "PUT /products/:id",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 29900\n}" },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /products/:id/status",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"inactive\"\n}" },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}/status", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}", "status"] }
+          }
+        },
+        {
+          "name": "DELETE /products/:id",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Servicios",
+      "item": [
+        {
+          "name": "GET /services público (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json().data;",
+                  "if (items.length) pm.environment.set('serviceId', items[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/services", "host": ["{{baseUrl}}"], "path": ["services"] } }
+        },
+        {
+          "name": "POST /services (admin, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('201 creado', () => pm.response.to.have.status(201));", "pm.environment.set('serviceId', pm.response.json().data.id);"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Servicio de Postman\",\n  \"price\": 40000,\n  \"durationMinutes\": 30\n}" },
+            "url": { "raw": "{{baseUrl}}/services", "host": ["{{baseUrl}}"], "path": ["services"] }
+          }
+        },
+        {
+          "name": "PUT /services/:id",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 45000,\n  \"durationMinutes\": 45\n}" },
+            "url": { "raw": "{{baseUrl}}/services/{{serviceId}}", "host": ["{{baseUrl}}"], "path": ["services", "{{serviceId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /services/:id/status",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"inactive\"\n}" },
+            "url": { "raw": "{{baseUrl}}/services/{{serviceId}}/status", "host": ["{{baseUrl}}"], "path": ["services", "{{serviceId}}", "status"] }
+          }
+        },
+        {
+          "name": "DELETE /services/:id",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/services/{{serviceId}}", "host": ["{{baseUrl}}"], "path": ["services", "{{serviceId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Categorías",
+      "item": [
+        {
+          "name": "GET /categories?type=product (200)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/categories?type=product", "host": ["{{baseUrl}}"], "path": ["categories"], "query": [{ "key": "type", "value": "product" }] } }
+        },
+        {
+          "name": "POST /categories (admin, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('201 creado', () => pm.response.to.have.status(201));", "pm.environment.set('categoryId', pm.response.json().data.id);"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Categoría de Postman {{$randomInt}}\",\n  \"type\": \"product\"\n}" },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "PUT /categories/:id",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Actualizada desde Postman\"\n}" },
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        },
+        {
+          "name": "DELETE /categories/:id",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Metadatos",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));", "pm.test('bd arriba', () => pm.expect(pm.response.json().data.database).to.eql('up'));"], "type": "text/javascript" } }],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] } }
+        },
+        {
+          "name": "GET /document-types",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/document-types", "host": ["{{baseUrl}}"], "path": ["document-types"] } }
+        },
+        {
+          "name": "GET /roles (admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/roles", "host": ["{{baseUrl}}"], "path": ["roles"] }
+          }
+        },
+        {
+          "name": "GET /permissions (admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/permissions", "host": ["{{baseUrl}}"], "path": ["permissions"] }
+          }
+        },
+        {
+          "name": "GET /audit-logs (admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 ok', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/audit-logs", "host": ["{{baseUrl}}"], "path": ["audit-logs"] }
+          }
+        },
+        {
+          "name": "GET /users con búsqueda maliciosa (inyección SQL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 sin ejecutar la inyección', () => pm.response.to.have.status(200));",
+                  "pm.test('no filtra todos los registros', () => pm.expect(pm.response.json().data.length).to.eql(0));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?search=' OR 1=1 --",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [{ "key": "search", "value": "' OR 1=1 --" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

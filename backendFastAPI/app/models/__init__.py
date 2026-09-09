@@ -1,0 +1,30 @@
+"""
+Importa todos los modelos ORM para que SQLAlchemy resuelva las relaciones
+declaradas por nombre de cadena (p. ej. `relationship("Category")`) y para
+que `Base.metadata` los conozca a todos.
+"""
+
+from app.models.audit_log import AuditLog
+from app.models.category import Category
+from app.models.document_type import DocumentType
+from app.models.password_reset import PasswordReset
+from app.models.permission import Permission, role_permissions
+from app.models.product import Product
+from app.models.role import Role
+from app.models.service import Service
+from app.models.session import Session
+from app.models.user import User
+
+__all__ = [
+    "AuditLog",
+    "Category",
+    "DocumentType",
+    "PasswordReset",
+    "Permission",
+    "role_permissions",
+    "Product",
+    "Role",
+    "Service",
+    "Session",
+    "User",
+]
