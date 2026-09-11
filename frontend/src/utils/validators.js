@@ -192,6 +192,85 @@ export const loginPasswordRule = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* Reglas de catálogo (productos, servicios, categorías)                */
+/* Mismos límites que backendFastAPI/app/schemas/{product,service,category}.py */
+/* ------------------------------------------------------------------ */
+
+/** Precio requerido: entero o decimal, entre 0 y 99 999 999.99. */
+export const priceRule = {
+  label: 'Precio',
+  required: true,
+  messages: { required: 'El precio es obligatorio.' },
+  validate: (value) => {
+    const number = Number(value);
+    if (Number.isNaN(number)) return 'Escribe un precio válido.';
+    if (number < 0) return 'El precio no puede ser negativo.';
+    if (number > 99999999.99) return 'El precio es demasiado alto.';
+    return null;
+  },
+};
+
+/** Precio anterior (oldPrice): opcional, mismas reglas si se escribe algo. */
+export const optionalPriceRule = {
+  label: 'Precio anterior',
+  validate: (value) => {
+    if (value === '' || value === null || value === undefined) return null;
+    const number = Number(value);
+    if (Number.isNaN(number)) return 'Escribe un precio válido.';
+    if (number < 0) return 'El precio anterior no puede ser negativo.';
+    if (number > 99999999.99) return 'El precio anterior es demasiado alto.';
+    return null;
+  },
+};
+
+/** Stock: opcional, entero ≥ 0. */
+export const stockRule = {
+  label: 'Stock',
+  validate: (value) => {
+    if (value === '' || value === null || value === undefined) return null;
+    const number = Number(value);
+    if (!Number.isInteger(number)) return 'El stock debe ser un número entero.';
+    if (number < 0) return 'El stock no puede ser negativo.';
+    return null;
+  },
+};
+
+/** Duración en minutos de un servicio: requerida, entre 1 y 600. */
+export const durationRule = {
+  label: 'Duración',
+  required: true,
+  messages: { required: 'La duración es obligatoria.' },
+  validate: (value) => {
+    const number = Number(value);
+    if (!Number.isInteger(number)) return 'La duración debe ser un número entero de minutos.';
+    if (number <= 0) return 'La duración debe ser mayor a 0 minutos.';
+    if (number > 600) return 'La duración no puede superar los 600 minutos.';
+    return null;
+  },
+};
+
+/** Descripción de longitud variable (2000 en productos/servicios, 255 en categorías). */
+export const descriptionRule = (maxLength = 2000) => ({
+  label: 'Descripción',
+  maxLength,
+  messages: { maxLength: `La descripción no puede superar los ${maxLength} caracteres.` },
+});
+
+/** URL de imagen: opcional, hasta 500 caracteres. */
+export const imageUrlRule = {
+  label: 'Imagen (URL)',
+  maxLength: 500,
+  messages: { maxLength: 'La URL de la imagen es demasiado larga.' },
+};
+
+/** Etiqueta de producto ("Nuevo", "Oferta"...): opcional, hasta 40 caracteres. */
+export const badgeRule = {
+  label: 'Etiqueta',
+  maxLength: 40,
+  messages: { maxLength: 'La etiqueta no puede superar los 40 caracteres.' },
+};
+
 /**
  * Calcula la fortaleza de una contraseña de 0 a 4 para la barra visual.
  * @returns {{score: number, label: string}}

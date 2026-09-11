@@ -52,6 +52,19 @@ class Settings(BaseSettings):
     PASSWORD_RESET_TTL_MINUTES: int = Field(default=30, gt=0)
     EXPOSE_RESET_TOKEN: bool = False
 
+    # Frontend (para construir el enlace del correo de recuperación)
+    FRONTEND_URL: str = Field(default="http://localhost:5173", min_length=1)
+
+    # Correo (SMTP). Con MAIL_ENABLED=false no se envía nada: el enlace se escribe en el log.
+    MAIL_ENABLED: bool = False
+    SMTP_HOST: str = "sandbox.smtp.mailtrap.io"
+    SMTP_PORT: int = Field(default=2525, gt=0)
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "BeautyLux <no-reply@beautylux.com>"
+    SMTP_SECURITY: Literal["starttls", "ssl", "none"] = "starttls"
+    SMTP_TIMEOUT_SECONDS: int = Field(default=10, gt=0)
+
     @field_validator("JWT_ACCESS_SECRET")
     @classmethod
     def _validate_secret_length(cls, value: str) -> str:

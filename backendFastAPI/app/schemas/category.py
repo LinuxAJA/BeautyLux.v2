@@ -10,6 +10,7 @@ from app.schemas.common import CamelModel, InputModel
 
 CATEGORY_TYPES = ("product", "service")
 STATUS_VALUES = ("active", "inactive")
+DESCRIPTION_MAX = 255
 
 
 class CategoryOut(CamelModel):
@@ -53,8 +54,10 @@ class CreateCategoryRequest(InputModel):
         if v is None:
             return v
         trimmed = v.strip()
-        if len(trimmed) > 300:
-            raise ValueError("La descripción no puede superar los 300 caracteres.")
+        # 255 y no 300 (como en Node): la columna categories.description es VARCHAR(255);
+        # con 300 un texto de 256-300 caracteres pasaba la validación y fallaba en MySQL.
+        if len(trimmed) > DESCRIPTION_MAX:
+            raise ValueError(f"La descripción no puede superar los {DESCRIPTION_MAX} caracteres.")
         return trimmed
 
     @field_validator("image_url")
@@ -97,6 +100,26 @@ class UpdateCategoryRequest(InputModel):
         trimmed = v.strip()
         if len(trimmed) < 2 or len(trimmed) > 80:
             raise ValueError("El nombre debe tener entre 2 y 80 caracteres.")
+        return trimmed
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > DESCRIPTION_MAX:
+            raise ValueError(f"La descripción no puede superar los {DESCRIPTION_MAX} caracteres.")
+        return trimmed
+
+    @field_validator("image_url")
+    @classmethod
+    def _image_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > 500:
+            raise ValueError("La URL de la imagen es demasiado larga.")
         return trimmed
 
     @field_validator("type")

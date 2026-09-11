@@ -1,22 +1,28 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, Sparkles, Star } from 'lucide-react';
 
+import WhatsAppButton from '../components/common/WhatsAppButton';
 import LoginForm from '../components/auth/LoginForm';
 import RecoverPassword from '../components/auth/RecoverPassword';
 import RegisterModal from '../components/auth/RegisterModal';
+import ResetPasswordForm from '../components/auth/ResetPasswordForm';
 import useDisclosure from '../hooks/useDisclosure';
 
 /**
  * Página de acceso a la cuenta.
  *
- * Alterna entre el inicio de sesión y la recuperación de contraseña, y abre
- * el modal de registro. Usa su propio diseño a dos columnas en lugar del
- * MainLayout para mantener el foco en el formulario.
+ * Alterna entre el inicio de sesión, la recuperación de contraseña y (al
+ * llegar desde el enlace del correo) el formulario para crear la contraseña
+ * nueva, y abre el modal de registro. Usa su propio diseño a dos columnas en
+ * lugar del MainLayout para mantener el foco en el formulario.
+ *
+ * `initialView='reset'` la monta la ruta `/restablecer-contrasena`.
  */
-function Auth() {
-  const [view, setView] = useState('login');
+function Auth({ initialView = 'login' }) {
+  const [view, setView] = useState(initialView);
   const registerModal = useDisclosure();
+  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen">
@@ -75,13 +81,21 @@ function Auth() {
 
         <div className="flex flex-1 items-center justify-center px-5 pb-12 sm:px-8">
           <div className="w-full max-w-md">
-            {view === 'login' ? (
+            {view === 'login' && (
               <LoginForm
                 onForgotPassword={() => setView('recover')}
                 onCreateAccount={registerModal.open}
               />
-            ) : (
-              <RecoverPassword onBack={() => setView('login')} />
+            )}
+            {view === 'recover' && <RecoverPassword onBack={() => setView('login')} />}
+            {view === 'reset' && (
+              <ResetPasswordForm
+                onBack={() => setView('login')}
+                onDone={() => {
+                  setView('login');
+                  navigate('/login', { replace: true });
+                }}
+              />
             )}
           </div>
         </div>
@@ -92,6 +106,8 @@ function Auth() {
         onClose={registerModal.close}
         onRegistered={() => setView('login')}
       />
+
+      <WhatsAppButton />
     </div>
   );
 }

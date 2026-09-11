@@ -5,10 +5,13 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.core.cookies import hash_token
+from app.core.email_templates import build_reset_url, password_reset_completed, password_reset_requested
 from app.core.errors import AppError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
+from app.core.mailer import send_email
 from app.core.security import compare_password, get_dummy_hash, hash_password
 from app.core.config import settings
 from app.repositories.password_reset import password_reset_repository
@@ -172,7 +175,7 @@ class AuthService:
         token_service.revoke_all_for_user(db, user_id)
         audit_service.record(db, user_id=user_id, action="password_changed", entity="users", entity_id=user_id)
 
-    def forgot_password(self, db: Session, email: str) -> dict:
+    def forgot_password(self, db: Session, email: str, background_tasks: BackgroundTasks) -> dict:
         normalized_email = email.lower().strip()
         user = user_repository.find_by_email_with_password(db, normalized_email)
 
@@ -193,12 +196,23 @@ class AuthService:
             db, user_id=user.id, action="password_reset_requested", entity="users", entity_id=user.id
         )
 
+        # El envío corre en segundo plano, DESPUÉS de que la respuesta HTTP ya salió:
+        # un SMTP lento (o Mailtrap con latencia) no debe demorar la respuesta al frontend.
+        subject, html_body, text_body = password_reset_requested(
+            first_name=user.first_name,
+            reset_url=build_reset_url(raw_token),
+            ttl_minutes=settings.PASSWORD_RESET_TTL_MINUTES,
+        )
+        background_tasks.add_task(
+            send_email, to=user.email, subject=subject, html_body=html_body, text_body=text_body
+        )
+
         result = {"message": generic_message}
         if settings.EXPOSE_RESET_TOKEN:
             result["reset_token"] = raw_token
         return result
 
-    def reset_password(self, db: Session, raw_token: str, new_password: str) -> None:
+    def reset_password(self, db: Session, raw_token: str, new_password: str, background_tasks: BackgroundTasks) -> None:
         record = password_reset_repository.find_valid_by_token_hash(db, hash_token(raw_token))
         if not record:
             raise UnauthorizedError("El enlace de recuperación no es válido o expiró.", "INVALID_RESET_TOKEN")
@@ -210,6 +224,14 @@ class AuthService:
         audit_service.record(
             db, user_id=record.user_id, action="password_reset_completed", entity="users", entity_id=record.user_id
         )
+
+        # Correo de confirmación: si el usuario no reconoce este cambio, se entera de inmediato.
+        user = user_repository.find_by_id_with_role(db, record.user_id)
+        if user:
+            subject, html_body, text_body = password_reset_completed(first_name=user.first_name)
+            background_tasks.add_task(
+                send_email, to=user.email, subject=subject, html_body=html_body, text_body=text_body
+            )
 
 
 auth_service = AuthService()

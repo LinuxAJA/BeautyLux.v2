@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
-import { LogOut, Menu, Search, ShoppingBag, Sparkles, User } from 'lucide-react';
+import { Menu, Search, ShoppingBag, Sparkles } from 'lucide-react';
 
 import Button from '../ui/Button';
 import MobileMenu from './MobileMenu';
+import UserMenu from './UserMenu';
 import { mainNavLinks } from '../../data/navLinks';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../utils/cn';
@@ -11,7 +12,7 @@ import { cn } from '../../utils/cn';
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   // El header se vuelve opaco al bajar, para no competir con el hero.
@@ -23,8 +24,8 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
@@ -88,18 +89,8 @@ function Header() {
             </Button>
 
             {isAuthenticated ? (
-              <div className="hidden items-center gap-2 md:flex">
-                <Link
-                  to="/panel"
-                  className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary"
-                >
-                  <User className="size-4 text-primary" aria-hidden="true" />
-                  {user.firstName}
-                </Link>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  <LogOut />
-                  Salir
-                </Button>
+              <div className="hidden md:flex">
+                <UserMenu />
               </div>
             ) : (
               <Button

@@ -32,7 +32,7 @@ function CategoryGrid() {
               />
 
               <div
-                className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/25 to-transparent"
+                className="absolute inset-0 bg-linear-to-t from-foreground/85 via-foreground/25 to-transparent"
                 aria-hidden="true"
               />
 

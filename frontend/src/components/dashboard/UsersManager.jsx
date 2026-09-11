@@ -18,6 +18,7 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
   const [search, setSearch] = useState('');
   const [modalUser, setModalUser] = useState(undefined); // undefined = cerrado, null = crear, objeto = editar
   const [pendingAction, setPendingAction] = useState(null); // { type: 'delete'|'status', user }
+  const [actionError, setActionError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
   const { data, isLoading, error, refetch } = useApi(
@@ -39,6 +40,7 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
   const confirmAction = async () => {
     if (!pendingAction) return;
     setIsActing(true);
+    setActionError(null);
     try {
       if (pendingAction.type === 'delete') {
         await usersService.deleteUser(pendingAction.user.id);
@@ -47,9 +49,16 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
       }
       await refetch();
       setPendingAction(null);
+    } catch (error) {
+      setActionError(error.message ?? 'No se pudo completar la acción.');
     } finally {
       setIsActing(false);
     }
+  };
+
+  const closeActionDialog = () => {
+    setPendingAction(null);
+    setActionError(null);
   };
 
   const columns = [
@@ -131,9 +140,10 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
 
       <ConfirmDialog
         isOpen={Boolean(pendingAction)}
-        onClose={() => setPendingAction(null)}
+        onClose={closeActionDialog}
         onConfirm={confirmAction}
         isLoading={isActing}
+        error={actionError}
         title={pendingAction?.type === 'delete' ? 'Eliminar usuario' : 'Cambiar estado'}
         confirmLabel={pendingAction?.type === 'delete' ? 'Eliminar' : 'Confirmar'}
         description={

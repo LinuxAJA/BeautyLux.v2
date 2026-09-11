@@ -17,7 +17,10 @@ MAX_PRICE = 99999999.99
 
 class ProductOut(CamelModel):
     """La categoría va anidada; categoryId/categorySlug/categoryName no se exponen
-    (igual que Product.toJSON() en Node)."""
+    (igual que Product.toJSON() en Node).
+
+    `price`, `old_price` y `rating` son DECIMAL en MySQL, pero se exponen como `float`:
+    Node hace `Number(...)` y el frontend espera números en el JSON, no strings."""
 
     id: int
     sku: str
@@ -25,10 +28,10 @@ class ProductOut(CamelModel):
     name: str
     description: str | None = None
     category: CategoryRefOut | None = None
-    price: Decimal
-    old_price: Decimal | None = None
+    price: float
+    old_price: float | None = None
     stock: int
-    rating: Decimal
+    rating: float
     reviews_count: int
     image_url: str | None = None
     badge: str | None = None
@@ -195,6 +198,23 @@ class UpdateProductRequest(InputModel):
             raise ValueError("El nombre debe tener entre 2 y 120 caracteres.")
         return trimmed
 
+    @field_validator("description")
+    @classmethod
+    def _description(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > 2000:
+            raise ValueError("La descripción no puede superar los 2000 caracteres.")
+        return trimmed
+
+    @field_validator("category_id")
+    @classmethod
+    def _category_id(cls, v: int | None) -> int | None:
+        if v is not None and v <= 0:
+            raise ValueError("La categoría no es válida.")
+        return v
+
     @field_validator("price")
     @classmethod
     def _price(cls, v: Decimal | None) -> Decimal | None:
@@ -204,12 +224,41 @@ class UpdateProductRequest(InputModel):
             raise ValueError("El precio no es válido.")
         return v
 
+    @field_validator("old_price")
+    @classmethod
+    def _old_price(cls, v: Decimal | None) -> Decimal | None:
+        if v is None:
+            return v
+        if v < 0 or v > Decimal(str(MAX_PRICE)):
+            raise ValueError("El precio anterior no es válido.")
+        return v
+
     @field_validator("stock")
     @classmethod
     def _stock(cls, v: int | None) -> int | None:
         if v is not None and v < 0:
             raise ValueError("El stock no puede ser negativo.")
         return v
+
+    @field_validator("image_url")
+    @classmethod
+    def _image_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > 500:
+            raise ValueError("La URL de la imagen es demasiado larga.")
+        return trimmed
+
+    @field_validator("badge")
+    @classmethod
+    def _badge(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > 40:
+            raise ValueError("La etiqueta no puede superar los 40 caracteres.")
+        return trimmed
 
     @field_validator("status")
     @classmethod

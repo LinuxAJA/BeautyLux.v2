@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import { useApi } from '../../hooks/useApi';
 import useForm from '../../hooks/useForm';
 import * as categoriesService from '../../services/categories.service';
+import { descriptionRule, durationRule, imageUrlRule, priceRule } from '../../utils/validators';
 
 const EMPTY_VALUES = {
   name: '',
@@ -19,18 +20,10 @@ const EMPTY_VALUES = {
 
 const schema = {
   name: { label: 'Nombre', required: true, minLength: 2, maxLength: 120, messages: { required: 'El nombre es obligatorio.' } },
-  price: {
-    label: 'Precio',
-    required: true,
-    messages: { required: 'El precio es obligatorio.' },
-    validate: (value) => (Number(value) < 0 ? 'El precio no puede ser negativo.' : null),
-  },
-  durationMinutes: {
-    label: 'Duración',
-    required: true,
-    messages: { required: 'La duración es obligatoria.' },
-    validate: (value) => (Number(value) <= 0 ? 'La duración debe ser mayor a 0 minutos.' : null),
-  },
+  price: priceRule,
+  durationMinutes: durationRule,
+  imageUrl: imageUrlRule,
+  description: descriptionRule(2000),
 };
 
 function ServiceFormModal({ isOpen, onClose, onSubmit, initialService }) {
@@ -97,16 +90,14 @@ function ServiceFormModal({ isOpen, onClose, onSubmit, initialService }) {
             name="categoryId"
           />
 
-          <Input label="Precio" type="number" min="0" {...getFieldProps('price')} />
-          <Input label="Duración (minutos)" type="number" min="1" {...getFieldProps('durationMinutes')} />
+          <Input label="Precio" type="number" min="0" step="0.01" {...getFieldProps('price')} />
+          <Input label="Duración (minutos)" type="number" min="1" max="600" step="1" {...getFieldProps('durationMinutes')} />
 
-          <Input label="Imagen (URL)" name="imageUrl" value={values.imageUrl} onChange={handleChange} containerClassName="sm:col-span-2" />
+          <Input label="Imagen (URL)" type="url" containerClassName="sm:col-span-2" {...getFieldProps('imageUrl')} />
           <Input
             label="Descripción"
             containerClassName="sm:col-span-2"
-            name="description"
-            value={values.description}
-            onChange={handleChange}
+            {...getFieldProps('description')}
           />
         </div>
 

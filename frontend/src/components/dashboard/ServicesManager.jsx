@@ -14,6 +14,7 @@ function ServicesManager({ canDelete = true }) {
   const [search, setSearch] = useState('');
   const [modalService, setModalService] = useState(undefined);
   const [pendingAction, setPendingAction] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
   const { data, isLoading, error, refetch } = useApi(
@@ -35,6 +36,7 @@ function ServicesManager({ canDelete = true }) {
   const confirmAction = async () => {
     if (!pendingAction) return;
     setIsActing(true);
+    setActionError(null);
     try {
       if (pendingAction.type === 'delete') {
         await servicesService.deleteService(pendingAction.service.id);
@@ -43,9 +45,16 @@ function ServicesManager({ canDelete = true }) {
       }
       await refetch();
       setPendingAction(null);
+    } catch (error) {
+      setActionError(error.message ?? 'No se pudo completar la acción.');
     } finally {
       setIsActing(false);
     }
+  };
+
+  const closeActionDialog = () => {
+    setPendingAction(null);
+    setActionError(null);
   };
 
   const columns = [
@@ -121,9 +130,10 @@ function ServicesManager({ canDelete = true }) {
 
       <ConfirmDialog
         isOpen={Boolean(pendingAction)}
-        onClose={() => setPendingAction(null)}
+        onClose={closeActionDialog}
         onConfirm={confirmAction}
         isLoading={isActing}
+        error={actionError}
         title={pendingAction?.type === 'delete' ? 'Eliminar servicio' : 'Cambiar estado'}
         confirmLabel={pendingAction?.type === 'delete' ? 'Eliminar' : 'Confirmar'}
         description={

@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import { useApi } from '../../hooks/useApi';
 import useForm from '../../hooks/useForm';
 import * as categoriesService from '../../services/categories.service';
+import { badgeRule, descriptionRule, imageUrlRule, optionalPriceRule, priceRule, stockRule } from '../../utils/validators';
 
 const EMPTY_VALUES = {
   sku: '',
@@ -23,12 +24,12 @@ const EMPTY_VALUES = {
 const schema = {
   sku: { label: 'SKU', required: true, minLength: 2, maxLength: 40, messages: { required: 'El SKU es obligatorio.' } },
   name: { label: 'Nombre', required: true, minLength: 2, maxLength: 120, messages: { required: 'El nombre es obligatorio.' } },
-  price: {
-    label: 'Precio',
-    required: true,
-    messages: { required: 'El precio es obligatorio.' },
-    validate: (value) => (Number(value) < 0 ? 'El precio no puede ser negativo.' : null),
-  },
+  price: priceRule,
+  oldPrice: optionalPriceRule,
+  stock: stockRule,
+  imageUrl: imageUrlRule,
+  badge: badgeRule,
+  description: descriptionRule(2000),
 };
 
 function ProductFormModal({ isOpen, onClose, onSubmit, initialProduct }) {
@@ -100,20 +101,18 @@ function ProductFormModal({ isOpen, onClose, onSubmit, initialProduct }) {
             onChange={handleChange}
             name="categoryId"
           />
-          <Input label="Imagen (URL)" name="imageUrl" value={values.imageUrl} onChange={handleChange} />
+          <Input label="Imagen (URL)" type="url" {...getFieldProps('imageUrl')} />
 
-          <Input label="Precio" type="number" min="0" {...getFieldProps('price')} />
-          <Input label="Precio anterior" type="number" min="0" name="oldPrice" value={values.oldPrice} onChange={handleChange} />
+          <Input label="Precio" type="number" min="0" step="0.01" {...getFieldProps('price')} />
+          <Input label="Precio anterior" type="number" min="0" step="0.01" {...getFieldProps('oldPrice')} />
 
-          <Input label="Existencias" type="number" min="0" name="stock" value={values.stock} onChange={handleChange} />
-          <Input label="Etiqueta" name="badge" value={values.badge} onChange={handleChange} placeholder="Nuevo, Oferta..." />
+          <Input label="Existencias" type="number" min="0" step="1" {...getFieldProps('stock')} />
+          <Input label="Etiqueta" placeholder="Nuevo, Oferta..." {...getFieldProps('badge')} />
 
           <Input
             label="Descripción"
             containerClassName="sm:col-span-2"
-            name="description"
-            value={values.description}
-            onChange={handleChange}
+            {...getFieldProps('description')}
           />
         </div>
 

@@ -72,6 +72,34 @@ al arrancar (con `pydantic-settings`) y el proceso se detiene con un mensaje cla
 algo. Usa el **mismo** `JWT_ACCESS_SECRET` que `backend/.env` si quieres que un token emitido
 por cualquiera de los dos backends sea válido en el otro.
 
+### Correo de recuperación de contraseña (SMTP)
+
+Con `MAIL_ENABLED=false` (por defecto) no se envía ningún correo: el enlace se escribe en el
+log del servidor, útil para desarrollar sin bandeja de correo. Para probar el envío real, usa
+un [Mailtrap Sandbox](https://mailtrap.io) (Email Testing → tu inbox → pestaña *Integration*
+para las credenciales SMTP) y completa en `.env`:
+
+```bash
+FRONTEND_URL=http://localhost:5173
+
+MAIL_ENABLED=true
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=<tu usuario de Mailtrap>
+SMTP_PASSWORD=<tu contraseña de Mailtrap>
+SMTP_FROM=BeautyLux <no-reply@beautylux.com>
+SMTP_SECURITY=starttls
+```
+
+Con `MAIL_ENABLED=true`, cada correo (solicitud de recuperación y confirmación de cambio de
+contraseña) llega a la bandeja de Mailtrap, aunque el destinatario sea uno de los usuarios de
+prueba (`@beautylux.com`, que no existen de verdad). El envío corre en segundo plano
+(`BackgroundTasks` de FastAPI), después de responder al frontend, para que la latencia de SMTP
+nunca retrase la respuesta HTTP.
+
+Con el correo funcionando, se recomienda poner `EXPOSE_RESET_TOKEN=false`: ese flag solo existe
+como respaldo para probar el flujo sin bandeja de correo (expone el token en la respuesta JSON).
+
 ## Usuarios de prueba
 
 Los mismos que sembró `backend/database/seed.sql` — la base de datos es compartida:

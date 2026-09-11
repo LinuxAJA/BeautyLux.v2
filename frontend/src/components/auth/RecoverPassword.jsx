@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowLeft, CircleCheck, Mail, Send } from 'lucide-react';
+import { ArrowLeft, CircleAlert, CircleCheck, Mail, Send } from 'lucide-react';
 
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import useForm from '../../hooks/useForm';
+import * as authService from '../../services/auth.service';
 import { emailRule } from '../../utils/validators';
 
 const schema = { email: emailRule };
@@ -13,18 +14,31 @@ const schema = { email: emailRule };
  *
  * Componente independiente y reutilizable: no conoce al formulario de login,
  * solo recibe `onBack` para devolver el control a quien lo renderiza.
+ *
+ * El backend responde con el mismo mensaje genérico exista o no la cuenta
+ * (evita revelar qué correos están registrados) y envía el enlace por correo
+ * en segundo plano — ver ResetPasswordForm para el segundo paso.
  */
 function RecoverPassword({ onBack }) {
   const [sentTo, setSentTo] = useState(null);
+  const [requestError, setRequestError] = useState(null);
   const { isSubmitting, getFieldProps, handleSubmit } = useForm(
     { email: '' },
     schema,
   );
 
   const onSubmit = handleSubmit(async (data) => {
-    // Sin backend en este avance: se simula el envío del enlace.
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    setSentTo(data.email);
+    setRequestError(null);
+    try {
+      await authService.forgotPassword(data.email);
+      setSentTo(data.email);
+    } catch (error) {
+      setRequestError(
+        error.code === 'RATE_LIMITED'
+          ? error.message
+          : 'No se pudo procesar la solicitud. Inténtalo de nuevo en unos minutos.',
+      );
+    }
   });
 
   if (sentTo) {
@@ -37,9 +51,8 @@ function RecoverPassword({ onBack }) {
         <div>
           <h1 className="font-serif text-2xl font-semibold">Revisa tu correo</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Enviamos un enlace para restablecer tu contraseña a{' '}
-            <strong className="font-medium text-foreground">{sentTo}</strong>. El enlace
-            caduca en 30 minutos.
+            Si <strong className="font-medium text-foreground">{sentTo}</strong> está registrado,
+            te enviamos un enlace para restablecer tu contraseña. El enlace caduca en 30 minutos.
           </p>
         </div>
 
@@ -60,6 +73,16 @@ function RecoverPassword({ onBack }) {
           crear una contraseña nueva.
         </p>
       </div>
+
+      {requestError && (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {requestError}
+        </p>
+      )}
 
       <Input
         label="Correo electrónico"

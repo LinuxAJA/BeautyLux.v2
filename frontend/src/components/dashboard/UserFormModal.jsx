@@ -42,16 +42,37 @@ function UserFormModal({ isOpen, onClose, onSubmit, initialUser, canChangeRole =
   const isEdit = Boolean(initialUser);
   const [serverError, setServerError] = useState(null);
 
-  const buildSchema = (values) => ({
-    firstName: nameRule('Nombre'),
-    lastName: nameRule('Apellido'),
-    documentType: { label: 'Tipo de documento', required: true },
-    documentNumber: { ...getDocumentNumberRule(values.documentType), label: 'Número de documento', required: true },
-    address: addressRule,
-    phone: phoneRule,
-    email: emailRule,
-    ...(isEdit ? {} : { password: passwordRule }),
-  });
+  const buildSchema = (values) => {
+    const documentRule = getDocumentNumberRule(values.documentType);
+
+    return {
+      firstName: nameRule('Nombre'),
+      lastName: nameRule('Apellido'),
+      documentType: {
+        label: 'Tipo de documento',
+        required: true,
+        messages: { required: 'Selecciona un tipo de documento.' },
+      },
+      documentNumber: {
+        label: 'Número de documento',
+        required: true,
+        minLength: documentRule.minLength,
+        maxLength: documentRule.maxLength,
+        pattern: documentRule.pattern,
+        sanitize: documentRule.sanitize,
+        messages: {
+          required: 'El número de documento es obligatorio.',
+          minLength: documentRule.lengthMessage,
+          maxLength: documentRule.lengthMessage,
+          pattern: documentRule.patternMessage,
+        },
+      },
+      address: addressRule,
+      phone: phoneRule,
+      email: emailRule,
+      ...(isEdit ? {} : { password: passwordRule }),
+    };
+  };
 
   const { values, isSubmitting, getFieldProps, handleChange, handleSubmit, reset } = useForm(
     EMPTY_VALUES,
@@ -60,7 +81,23 @@ function UserFormModal({ isOpen, onClose, onSubmit, initialUser, canChangeRole =
 
   useEffect(() => {
     if (isOpen) {
-      reset(initialUser ? { ...EMPTY_VALUES, ...initialUser, password: '' } : EMPTY_VALUES);
+      reset(
+        initialUser
+          ? {
+              firstName: initialUser.firstName,
+              lastName: initialUser.lastName,
+              documentType: initialUser.documentType,
+              documentNumber: initialUser.documentNumber,
+              address: initialUser.address,
+              phone: initialUser.phone,
+              email: initialUser.email,
+              password: '',
+              // `initialUser.role` es el objeto {id, name, label} que devuelve la API;
+              // el <Select> necesita el string plano que ya usan ROLE_OPTIONS.
+              role: initialUser.role?.name ?? 'client',
+            }
+          : EMPTY_VALUES,
+      );
       setServerError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,7 +106,11 @@ function UserFormModal({ isOpen, onClose, onSubmit, initialUser, canChangeRole =
   const onFormSubmit = handleSubmit(async (data) => {
     setServerError(null);
     try {
-      await onSubmit(data);
+      // Si quien edita no puede cambiar roles (p. ej. un empleado editando un
+      // cliente), no se envía `role`: el backend rechaza con 403 cualquier
+      // payload que lo incluya, aunque el valor no haya cambiado.
+      const { role: _role, ...rest } = data;
+      await onSubmit(canChangeRole ? data : rest);
       onClose();
     } catch (error) {
       setServerError(error.message ?? 'No se pudo guardar el usuario.');

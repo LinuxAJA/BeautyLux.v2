@@ -12,6 +12,7 @@ import * as categoriesService from '../../services/categories.service';
 function CategoriesManager() {
   const [modalCategory, setModalCategory] = useState(undefined);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
   const { data, isLoading, error, refetch } = useApi(() => categoriesService.listCategories(), []);
@@ -28,15 +29,21 @@ function CategoriesManager() {
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     setIsActing(true);
+    setDeleteError(null);
     try {
       await categoriesService.deleteCategory(pendingDelete.id);
       await refetch();
       setPendingDelete(null);
     } catch (error) {
-      setPendingDelete({ ...pendingDelete, error: error.message });
+      setDeleteError(error.message ?? 'No se pudo eliminar la categoría.');
     } finally {
       setIsActing(false);
     }
+  };
+
+  const closeDeleteDialog = () => {
+    setPendingDelete(null);
+    setDeleteError(null);
   };
 
   const columns = [
@@ -80,16 +87,13 @@ function CategoriesManager() {
 
       <ConfirmDialog
         isOpen={Boolean(pendingDelete)}
-        onClose={() => setPendingDelete(null)}
+        onClose={closeDeleteDialog}
         onConfirm={confirmDelete}
         isLoading={isActing}
+        error={deleteError}
         title="Eliminar categoría"
         confirmLabel="Eliminar"
-        description={
-          pendingDelete?.error
-            ? pendingDelete.error
-            : `¿Eliminar "${pendingDelete?.name}"? Solo es posible si no tiene productos o servicios asociados.`
-        }
+        description={`¿Eliminar "${pendingDelete?.name}"? Solo es posible si no tiene productos o servicios asociados.`}
       />
     </div>
   );

@@ -38,6 +38,7 @@ function App() {
       </Route>
 
       <Route path="/login" element={<Auth />} />
+      <Route path="/restablecer-contrasena" element={<Auth initialView="reset" />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>

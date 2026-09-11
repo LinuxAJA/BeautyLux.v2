@@ -26,18 +26,20 @@ Basta con levantar **un backend a la vez** junto con el frontend (los dos backen
 pueden correr simultáneamente, en puertos distintos, si se quieren comparar):
 
 ```bash
-# Terminal 1 — backend Node.js (http://localhost:3000/api)
-cd backend
-npm install
-npm run db:reset   # crea la BD, tablas y datos de prueba (requiere MySQL 8 en localhost)
-npm run dev
-
-# — o, en su lugar, backend FastAPI (http://localhost:8000/api) —
+# Terminal 1 — backend FastAPI (http://localhost:8000/api) — el que usa el frontend por defecto
 cd backendFastAPI
 python -m venv venv && venv\Scripts\activate
 pip install -r requirements.txt
-python database/run.py ping   # la BD ya existe si el backend Node la creó antes
+python database/run.py ping     # verifica que hay MySQL 8 en localhost; si no existe la BD:
+python database/run.py schema   # crea las tablas
+python database/run.py seed     # inserta roles, permisos, usuarios demo y catálogo
 uvicorn app.main:app --reload --port 8000
+
+# — o, en su lugar, backend Node.js (http://localhost:3000/api) —
+cd backend
+npm install
+npm run db:reset   # crea la BD, tablas y datos de prueba (si backendFastAPI ya la creó, omite este paso)
+npm run dev
 
 # Terminal 2 — frontend (http://localhost:5173)
 cd frontend
@@ -53,7 +55,8 @@ validaciones y usuarios de prueba están documentados en el README de cada capa:
 - [`frontend/README.md`](frontend/README.md)
 
 Planificación detallada de cada avance en `docs/`: [`PLAN_BACKEND.md`](docs/PLAN_BACKEND.md)
-(Node) y [`PLAN_BACKEND_FASTAPI.md`](docs/PLAN_BACKEND_FASTAPI.md) (FastAPI).
+(Node) y [`PLAN_BACKEND_FASTAPI.md`](docs/PLAN_BACKEND_FASTAPI.md) (FastAPI). Checklist de
+entregables del Cuarto Avance: [`ENTREGABLES_CUARTO_AVANCE.md`](docs/ENTREGABLES_CUARTO_AVANCE.md).
 
 ## Cómo encajan las capas
 

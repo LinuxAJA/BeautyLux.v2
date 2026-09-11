@@ -16,12 +16,14 @@ MAX_PRICE = 99999999.99
 
 
 class ServiceOut(CamelModel):
+    """`price` es DECIMAL en MySQL pero se expone como `float`, igual que Node."""
+
     id: int
     slug: str
     name: str
     description: str | None = None
     category: CategoryRefOut | None = None
-    price: Decimal
+    price: float
     duration_minutes: int
     image_url: str | None = None
     status: str
@@ -128,6 +130,26 @@ class UpdateServiceRequest(InputModel):
         trimmed = v.strip()
         if len(trimmed) < 2 or len(trimmed) > 120:
             raise ValueError("El nombre debe tener entre 2 y 120 caracteres.")
+        return trimmed
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > 2000:
+            raise ValueError("La descripción no puede superar los 2000 caracteres.")
+        return trimmed
+
+    @field_validator("image_url")
+    @classmethod
+    def _image_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if len(trimmed) > 500:
+            raise ValueError("La URL de la imagen es demasiado larga.")
         return trimmed
 
     @field_validator("price")

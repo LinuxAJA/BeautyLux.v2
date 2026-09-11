@@ -8,7 +8,7 @@ diferidas (PEP 563) con `__globals__` del wrapper — no del módulo original �
 por lo que tipos como `LoginRequest` quedan sin resolver. Sin la importación
 diferida, las anotaciones ya son objetos reales y ese problema no aparece."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.cookies import REFRESH_COOKIE_NAME, refresh_cookie_kwargs
@@ -113,12 +113,19 @@ def change_my_password(
 
 @router.post("/forgot-password", summary="Solicitar recuperación de contraseña")
 @limiter.limit(FORGOT_PASSWORD_LIMIT, error_message=FORGOT_PASSWORD_MESSAGE)
-def forgot_password(request: Request, dto: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    result = auth_service.forgot_password(db, dto.email)
+def forgot_password(
+    request: Request,
+    dto: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    result = auth_service.forgot_password(db, dto.email, background_tasks)
     return ok(data={"resetToken": result.get("reset_token")}, message=result["message"])
 
 
 @router.post("/reset-password", summary="Restablecer contraseña con token")
-def reset_password(dto: ResetPasswordRequest, db: Session = Depends(get_db)):
-    auth_service.reset_password(db, dto.token, dto.password)
+def reset_password(
+    dto: ResetPasswordRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    auth_service.reset_password(db, dto.token, dto.password, background_tasks)
     return ok(data=None, message="Contraseña restablecida correctamente. Ya puedes iniciar sesión.")

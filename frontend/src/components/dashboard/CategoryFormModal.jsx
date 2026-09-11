@@ -5,6 +5,7 @@ import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import Select from '../ui/Select';
 import useForm from '../../hooks/useForm';
+import { descriptionRule, imageUrlRule } from '../../utils/validators';
 
 const TYPE_OPTIONS = [
   { value: 'product', label: 'Producto' },
@@ -15,6 +16,9 @@ const EMPTY_VALUES = { name: '', description: '', imageUrl: '', type: 'product' 
 
 const schema = {
   name: { label: 'Nombre', required: true, minLength: 2, maxLength: 80, messages: { required: 'El nombre es obligatorio.' } },
+  // 255 y no 300: coincide con la columna categories.description (VARCHAR(255)) en ambos backends.
+  description: descriptionRule(255),
+  imageUrl: imageUrlRule,
 };
 
 function CategoryFormModal({ isOpen, onClose, onSubmit, initialCategory }) {
@@ -64,8 +68,8 @@ function CategoryFormModal({ isOpen, onClose, onSubmit, initialCategory }) {
 
         <Input label="Nombre" {...getFieldProps('name')} />
         <Select label="Tipo" options={TYPE_OPTIONS} value={values.type} onChange={handleChange} name="type" />
-        <Input label="Imagen (URL)" name="imageUrl" value={values.imageUrl} onChange={handleChange} />
-        <Input label="Descripción" name="description" value={values.description} onChange={handleChange} />
+        <Input label="Imagen (URL)" type="url" {...getFieldProps('imageUrl')} />
+        <Input label="Descripción" {...getFieldProps('description')} />
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
