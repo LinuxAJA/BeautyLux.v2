@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router';
-import { LogOut, Sparkles, User, X } from 'lucide-react';
+import { LogOut, User, X } from 'lucide-react';
 
+import BrandLogo from '../ui/BrandLogo';
 import Button from '../ui/Button';
 import { mainNavLinks } from '../../data/navLinks';
 import { useAuth } from '../../hooks/useAuth';
@@ -60,12 +61,7 @@ function MobileMenu({ isOpen, onClose, onLogout }) {
         )}
       >
         <div className="flex items-center justify-between border-b border-border p-4">
-          <span className="flex items-center gap-2 font-serif text-xl font-semibold">
-            <span className="primary-gradient flex size-8 items-center justify-center rounded-full">
-              <Sparkles className="size-4 text-primary-foreground" aria-hidden="true" />
-            </span>
-            BeautyLux
-          </span>
+          <BrandLogo size="sm" withClaim={false} />
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar menú">
             <X />
           </Button>

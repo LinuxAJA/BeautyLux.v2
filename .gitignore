@@ -1,2 +1,8 @@
+# Colecciones de Postman en formato carpeta (las versionadas son los .json
+# de backend/postman/ y backendFastAPI/postman/).
 /postman/
+
+# Almacenes de documentacion de desarrollo: PDFs de los avances, planes,
+# checklists, capturas de evidencia y mockups. No forman parte del repositorio.
 /docs/
+/stitch_beautylux/

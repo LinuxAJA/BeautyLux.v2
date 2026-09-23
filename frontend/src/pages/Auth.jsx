@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, Sparkles, Star } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 
 import WhatsAppButton from '../components/common/WhatsAppButton';
+import BrandLogo from '../components/ui/BrandLogo';
 import LoginForm from '../components/auth/LoginForm';
 import RecoverPassword from '../components/auth/RecoverPassword';
 import RegisterModal from '../components/auth/RegisterModal';
@@ -33,13 +34,8 @@ function Auth({ initialView = 'login' }) {
           aria-hidden="true"
         />
 
-        <Link to="/" className="relative flex items-center gap-2.5">
-          <span className="primary-gradient flex size-10 items-center justify-center rounded-full shadow-glow">
-            <Sparkles className="size-5 text-primary-foreground" aria-hidden="true" />
-          </span>
-          <span className="font-serif text-2xl font-semibold">
-            Beauty<span className="text-gradient">Lux</span>
-          </span>
+        <Link to="/" className="relative inline-flex" aria-label="BeautyLux, ir al inicio">
+          <BrandLogo />
         </Link>
 
         <div className="relative max-w-md">

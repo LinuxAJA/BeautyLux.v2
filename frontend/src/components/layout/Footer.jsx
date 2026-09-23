@@ -1,24 +1,20 @@
 import { Link } from 'react-router';
-import { Mail, MapPin, Phone, Sparkles } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 
 import NewsletterForm from '../home/NewsletterForm';
+import BrandLogo from '../ui/BrandLogo';
 import SocialIcon from '../ui/SocialIcon';
-import { contactInfo, footerColumns, socialLinks } from '../../data/navLinks';
+import { contactInfo, footerColumns, legalLinks, socialLinks } from '../../data/navLinks';
 
 function Footer() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="subtle-gradient border-t border-border">
-      <div className="container-app grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="primary-gradient flex size-10 items-center justify-center rounded-full shadow-glow">
-              <Sparkles className="size-5 text-primary-foreground" aria-hidden="true" />
-            </span>
-            <span className="font-serif text-2xl font-semibold">
-              Beauty<span className="text-gradient">Lux</span>
-            </span>
+      <div className="container-app grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-12">
+        <div className="space-y-4 lg:col-span-5">
+          <Link to="/" className="inline-flex" aria-label="BeautyLux, ir al inicio">
+            <BrandLogo />
           </Link>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Cosmética consciente para realzar tu belleza natural. Fórmulas veganas,
@@ -42,7 +38,7 @@ function Footer() {
         </div>
 
         {footerColumns.map(({ title, links }) => (
-          <nav key={title} aria-label={title}>
+          <nav key={title} aria-label={title} className="lg:col-span-2">
             <h3 className="mb-4 text-base font-semibold">{title}</h3>
             <ul className="space-y-2.5">
               {links.map(({ label, to }) => (
@@ -59,7 +55,7 @@ function Footer() {
           </nav>
         ))}
 
-        <div className="space-y-4">
+        <div className="space-y-4 lg:col-span-3">
           <h3 className="text-base font-semibold">Contacto</h3>
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex gap-2.5">
@@ -84,8 +80,21 @@ function Footer() {
       </div>
 
       <div className="border-t border-border">
-        <div className="container-app flex flex-col gap-2 py-5 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
+        <div className="container-app flex flex-col items-center gap-3 py-5 text-center text-xs text-muted-foreground lg:flex-row lg:justify-between lg:text-left">
           <p>© {year} BeautyLux. Todos los derechos reservados.</p>
+
+          <nav aria-label="Enlaces legales">
+            <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+              {legalLinks.map(({ label, to }) => (
+                <li key={label}>
+                  <Link to={to} className="smooth-transition hover:text-primary">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
           <p>SENA · Ficha 3406204 · Trimestre 03 · Competencia React</p>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
-import { Menu, Search, ShoppingBag, Sparkles } from 'lucide-react';
+import { Menu, Search, ShoppingBag } from 'lucide-react';
 
+import BrandLogo from '../ui/BrandLogo';
 import Button from '../ui/Button';
 import MobileMenu from './MobileMenu';
 import UserMenu from './UserMenu';
@@ -46,13 +47,8 @@ function Header() {
         )}
       >
         <div className="container-app flex h-18 items-center justify-between gap-4 py-3">
-          <Link to="/" className="flex items-center gap-2.5" aria-label="BeautyLux, ir al inicio">
-            <span className="primary-gradient flex size-10 items-center justify-center rounded-full shadow-glow">
-              <Sparkles className="size-5 text-primary-foreground" aria-hidden="true" />
-            </span>
-            <span className="font-serif text-2xl font-semibold tracking-tight">
-              Beauty<span className="text-gradient">Lux</span>
-            </span>
+          <Link to="/" className="inline-flex" aria-label="BeautyLux, ir al inicio">
+            <BrandLogo />
           </Link>
 
           <nav className="hidden md:flex md:items-center md:gap-1" aria-label="Navegación principal">

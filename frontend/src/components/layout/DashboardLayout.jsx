@@ -5,13 +5,13 @@ import {
   LogOut,
   Package,
   ScrollText,
-  Sparkles,
   User,
   Users,
   Wrench,
 } from 'lucide-react';
 
 import WhatsAppButton from '../common/WhatsAppButton';
+import BrandLogo from '../ui/BrandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import useScrollTop from '../../hooks/useScrollTop';
 import { cn } from '../../utils/cn';
@@ -49,11 +49,8 @@ function DashboardLayout() {
   return (
     <div className="flex min-h-screen bg-muted/40">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
-        <div className="flex items-center gap-2 border-b border-border p-5 font-serif text-xl font-semibold">
-          <span className="primary-gradient flex size-8 items-center justify-center rounded-full">
-            <Sparkles className="size-4 text-primary-foreground" aria-hidden="true" />
-          </span>
-          BeautyLux
+        <div className="border-b border-border p-5">
+          <BrandLogo size="sm" withClaim={false} />
         </div>
 
         <nav className="flex-1 space-y-1 p-4" aria-label="Navegación del panel">
@@ -92,7 +89,7 @@ function DashboardLayout() {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
-          <span className="font-serif text-lg font-semibold">BeautyLux</span>
+          <BrandLogo size="sm" withClaim={false} />
           <button type="button" onClick={handleLogout} className="text-sm font-medium text-destructive">
             Salir
           </button>
