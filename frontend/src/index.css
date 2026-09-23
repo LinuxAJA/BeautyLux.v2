@@ -18,6 +18,8 @@
   --primary: hsl(340 75% 65%);
   --primary-foreground: hsl(350 20% 98%);
   --primary-glow: hsl(345 80% 75%);
+  /* Rosa de interaccion del logo nuevo (#D84A76) */
+  --primary-hover: hsl(341 65% 57%);
 
   --secondary: hsl(30 85% 85%);
   --secondary-foreground: hsl(340 15% 15%);
@@ -30,6 +32,8 @@
   --champagne: hsl(45 60% 88%);
   --blush: hsl(350 65% 85%);
   --nude: hsl(25 25% 85%);
+  /* Dorado del claim "SERVICES & BEAUTY" del logo (#D4AF37) */
+  --brand-gold: hsl(46 65% 52%);
 
   /* Colores de interfaz */
   --card: hsl(350 20% 99%);
@@ -105,6 +109,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-glow: var(--primary-glow);
+  --color-primary-hover: var(--primary-hover);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -116,6 +121,7 @@
   --color-champagne: var(--champagne);
   --color-blush: var(--blush);
   --color-nude: var(--nude);
+  --color-brand-gold: var(--brand-gold);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -213,6 +219,15 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Etiqueta corta en mayusculas (categorias, claims, encabezados de bloque) */
+@utility label-caps {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 600;
 }
 
 @utility smooth-transition {

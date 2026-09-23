@@ -11,10 +11,10 @@ export const footerColumns = [
   {
     title: 'Tienda',
     links: [
-      { label: 'Maquillaje', to: '/productos' },
-      { label: 'Cuidado facial', to: '/productos' },
-      { label: 'Fragancias', to: '/productos' },
-      { label: 'Cabello', to: '/productos' },
+      { label: 'Maquillaje', to: '/productos?categoria=maquillaje' },
+      { label: 'Cuidado facial', to: '/productos?categoria=cuidado-facial' },
+      { label: 'Fragancias', to: '/productos?categoria=fragancias' },
+      { label: 'Cabello', to: '/productos?categoria=cabello' },
     ],
   },
   {
@@ -26,6 +26,13 @@ export const footerColumns = [
       { label: 'Crear cuenta', to: '/login' },
     ],
   },
+];
+
+/** Enlaces legales de la barra inferior del pie de página. */
+export const legalLinks = [
+  { label: 'Términos y condiciones', to: '/contacto' },
+  { label: 'Política de privacidad', to: '/contacto' },
+  { label: 'Política de envíos', to: '/contacto' },
 ];
 
 /** Datos de contacto reutilizados en el Footer y en la página de Contacto. */
