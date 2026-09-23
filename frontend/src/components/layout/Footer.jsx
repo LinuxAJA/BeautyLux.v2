@@ -12,7 +12,7 @@ function Footer() {
   return (
     <footer className="subtle-gradient border-t border-border">
       <div className="container-app grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-12">
-        <div className="space-y-4 lg:col-span-5">
+        <div className="space-y-4 lg:col-span-3">
           <Link to="/" className="inline-flex" aria-label="BeautyLux, ir al inicio">
             <BrandLogo />
           </Link>

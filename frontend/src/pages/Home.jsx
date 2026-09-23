@@ -2,6 +2,7 @@ import Benefits from '../components/home/Benefits';
 import Carousel from '../components/home/Carousel';
 import CategoryGrid from '../components/home/CategoryGrid';
 import FeaturedProducts from '../components/home/FeaturedProducts';
+import FeaturedServices from '../components/home/FeaturedServices';
 import Hero from '../components/home/Hero';
 import Newsletter from '../components/home/Newsletter';
 import SectionHeading from '../components/ui/SectionHeading';
@@ -29,6 +30,7 @@ function Home() {
 
       <CategoryGrid />
       <FeaturedProducts />
+      <FeaturedServices />
       <Benefits />
       <Testimonials />
       <Newsletter />
