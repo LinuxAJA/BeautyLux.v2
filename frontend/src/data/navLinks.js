@@ -2,6 +2,7 @@
 export const mainNavLinks = [
   { label: 'Inicio', to: '/' },
   { label: 'Productos', to: '/productos' },
+  { label: 'Servicios', to: '/servicios' },
   { label: 'Nosotros', to: '/nosotros' },
   { label: 'Contacto', to: '/contacto' },
 ];
@@ -15,6 +16,15 @@ export const footerColumns = [
       { label: 'Cuidado facial', to: '/productos?categoria=cuidado-facial' },
       { label: 'Fragancias', to: '/productos?categoria=fragancias' },
       { label: 'Cabello', to: '/productos?categoria=cabello' },
+    ],
+  },
+  {
+    title: 'Servicios',
+    links: [
+      { label: 'Faciales', to: '/servicios?categoria=servicios-faciales' },
+      { label: 'Manos y pies', to: '/servicios?categoria=servicios-manos-pies' },
+      { label: 'Cabello', to: '/servicios?categoria=servicios-cabello' },
+      { label: 'Maquillaje social', to: '/servicios?categoria=servicios-maquillaje' },
     ],
   },
   {
