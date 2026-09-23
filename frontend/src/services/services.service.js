@@ -37,10 +37,15 @@ export function deleteService(id) {
  * Adapta el DTO de la API a la forma que consumen ServiceCard/ServiceGrid.
  * A diferencia de los productos, un servicio no tiene rating, oldPrice, badge
  * ni stock: lo que lo distingue es su duración.
+ *
+ * `id` se queda con el slug (es la `key` de las rejillas); el id numerico de la
+ * base de datos viaja en `serviceId`, que es lo que necesitan el carrito y la
+ * venta para escribir `sale_details.service_id`.
  */
 export function toCardShape(service) {
   return {
     id: service.slug ?? String(service.id),
+    serviceId: service.id,
     slug: service.slug,
     name: service.name,
     description: service.description ?? '',

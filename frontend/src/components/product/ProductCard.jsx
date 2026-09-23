@@ -4,6 +4,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import Rating from '../ui/Rating';
+import { useCart } from '../../hooks/useCart';
 import { formatPrice } from '../../data/products';
 
 const BADGE_VARIANTS = {
@@ -15,7 +16,14 @@ const BADGE_VARIANTS = {
 
 /** Tarjeta de producto reutilizada en la página de inicio y en el catálogo. */
 function ProductCard({ product }) {
-  const { name, categoryName, price, oldPrice, rating, reviews, image, badge } = product;
+  const { productId, slug, name, categoryName, price, oldPrice, rating, reviews, image, badge, stock } =
+    product;
+  const { addItem } = useCart();
+
+  const isSoldOut = stock === 0;
+
+  const handleAdd = () =>
+    addItem({ itemType: 'product', itemId: productId, slug, name, price, image, stock });
 
   return (
     <Card hoverable className="group flex flex-col overflow-hidden">
@@ -35,9 +43,15 @@ function ProductCard({ product }) {
 
         {/* El botón aparece al pasar el ratón y permanece visible en táctil. */}
         <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 smooth-transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
-          <Button size="sm" fullWidth>
+          <Button
+            size="sm"
+            fullWidth
+            disabled={isSoldOut}
+            onClick={handleAdd}
+            aria-label={`Añadir ${name} a la bolsa`}
+          >
             <ShoppingBag />
-            Añadir a la bolsa
+            {isSoldOut ? 'Sin existencias' : 'Añadir a la bolsa'}
           </Button>
         </div>
       </div>

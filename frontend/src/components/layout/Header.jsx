@@ -8,12 +8,14 @@ import MobileMenu from './MobileMenu';
 import UserMenu from './UserMenu';
 import { mainNavLinks } from '../../data/navLinks';
 import { useAuth } from '../../hooks/useAuth';
+import { useCart } from '../../hooks/useCart';
 import { cn } from '../../utils/cn';
 
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, logout } = useAuth();
+  const { itemCount, open: openCart } = useCart();
   const navigate = useNavigate();
 
   // El header se vuelve opaco al bajar, para no competir con el hero.
@@ -77,11 +79,27 @@ function Header() {
               <Search />
             </Button>
 
-            <Button variant="ghost" size="icon" aria-label="Ver bolsa de compras" className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={openCart}
+              aria-label={
+                itemCount > 0
+                  ? `Ver la bolsa de compras, ${itemCount} ${itemCount === 1 ? 'artículo' : 'artículos'}`
+                  : 'Ver la bolsa de compras, está vacía'
+              }
+            >
               <ShoppingBag />
-              <span className="absolute -right-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                0
-              </span>
+              {/* Sin artículos no se pinta el globo: un 0 permanente es ruido. */}
+              {itemCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
+                >
+                  {itemCount > 9 ? '9+' : itemCount}
+                </span>
+              )}
             </Button>
 
             {isAuthenticated ? (

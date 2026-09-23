@@ -8,6 +8,7 @@ import RoleRoute from './components/auth/RoleRoute';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import Services from './pages/Services';
+import Cart from './pages/Cart';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Auth from './pages/Auth';
@@ -34,6 +35,7 @@ function App() {
         <Route index element={<Home />} />
         <Route path="productos" element={<Products />} />
         <Route path="servicios" element={<Services />} />
+        <Route path="bolsa" element={<Cart />} />
         <Route path="nosotros" element={<About />} />
         <Route path="contacto" element={<Contact />} />
         <Route path="*" element={<NotFound />} />
