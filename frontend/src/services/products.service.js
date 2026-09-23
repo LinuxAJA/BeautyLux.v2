@@ -33,10 +33,19 @@ export function deleteProduct(id) {
   return apiRequest(`/products/${id}`, { method: 'DELETE' });
 }
 
-/** Adapta el DTO de la API a la forma que ya consumen ProductCard/ProductGrid. */
+/**
+ * Adapta el DTO de la API a la forma que ya consumen ProductCard/ProductGrid.
+ *
+ * `id` se queda con el slug porque es lo que usan las rejillas como `key` y lo
+ * que leen las rutas; el id numerico de la base de datos viaja aparte en
+ * `productId`, que es lo que necesitan el carrito y, mas adelante, la venta
+ * para escribir `sale_details.product_id`.
+ */
 export function toCardShape(product) {
   return {
     id: product.slug ?? String(product.id),
+    productId: product.id,
+    slug: product.slug,
     name: product.name,
     category: product.category?.slug ?? null,
     categoryName: product.category?.name ?? '',
@@ -46,6 +55,7 @@ export function toCardShape(product) {
     reviews: product.reviewsCount,
     image: product.imageUrl,
     badge: product.badge,
+    stock: product.stock,
   };
 }
 

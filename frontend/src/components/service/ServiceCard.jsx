@@ -3,22 +3,19 @@ import { Clock, ShoppingBag } from 'lucide-react';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
+import { useCart } from '../../hooks/useCart';
 import { formatPrice } from '../../data/products';
-
-/** Convierte 150 en "2 h 30 min", que se lee mejor que "150 min". */
-function formatDuration(minutes) {
-  if (!minutes) return null;
-  if (minutes < 60) return `${minutes} min`;
-
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
-}
+import { formatDuration } from '../../utils/duration';
 
 /** Tarjeta de servicio reutilizada en la página de inicio y en el catálogo de servicios. */
 function ServiceCard({ service }) {
-  const { name, description, categoryName, price, durationMinutes, image } = service;
+  const { serviceId, slug, name, description, categoryName, price, durationMinutes, image } = service;
+  const { addItem } = useCart();
+
   const duration = formatDuration(durationMinutes);
+
+  const handleAdd = () =>
+    addItem({ itemType: 'service', itemId: serviceId, slug, name, price, image, durationMinutes });
 
   return (
     <Card hoverable className="group flex flex-col overflow-hidden">
@@ -39,7 +36,7 @@ function ServiceCard({ service }) {
 
         {/* El botón aparece al pasar el ratón y permanece visible en táctil. */}
         <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 smooth-transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
-          <Button size="sm" fullWidth>
+          <Button size="sm" fullWidth onClick={handleAdd} aria-label={`Añadir ${name} a la bolsa`}>
             <ShoppingBag />
             Añadir a la bolsa
           </Button>

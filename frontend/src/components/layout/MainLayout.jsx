@@ -2,6 +2,7 @@ import { Outlet } from 'react-router';
 
 import Header from './Header';
 import Footer from './Footer';
+import CartDrawer from '../cart/CartDrawer';
 import WhatsAppButton from '../common/WhatsAppButton';
 import useScrollTop from '../../hooks/useScrollTop';
 
@@ -16,6 +17,7 @@ function MainLayout() {
         <Outlet />
       </main>
       <Footer />
+      <CartDrawer />
       <WhatsAppButton />
     </div>
   );

@@ -4,5 +4,15 @@
 
 # Almacenes de documentacion de desarrollo: PDFs de los avances, planes,
 # checklists, capturas de evidencia y mockups. No forman parte del repositorio.
+# Ignorarlos no impide leerlos en local: .gitignore solo afecta a git.
 /docs/
 /stitch_beautylux/
+
+# Configuracion local de agentes y skills. Es del entorno de trabajo, no del
+# proyecto, y todavia no esta en uso: no se versiona.
+/.claude/
+/.agents/
+/skills-lock.json
+
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
