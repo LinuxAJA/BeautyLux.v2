@@ -34,7 +34,11 @@ const NAV_BY_ROLE = {
     { to: '/panel/empleado/servicios', label: 'Servicios', icon: Wrench },
     { to: '/panel/empleado/citas', label: 'Citas', icon: CalendarDays },
   ],
-  client: [{ to: '/panel/cliente', label: 'Mi perfil', icon: User, end: true }],
+  client: [
+    { to: '/panel/cliente', label: 'Mi perfil', icon: User, end: true },
+    { to: '/panel/cliente/pedidos', label: 'Mis pedidos', icon: Package },
+    { to: '/panel/cliente/citas', label: 'Mis citas', icon: CalendarDays },
+  ],
 };
 
 /** Layout de los paneles autenticados: barra lateral por rol + contenido. */

@@ -108,13 +108,11 @@ function Cart() {
                   </div>
                 </dl>
 
-                {/* El checkout llega en la etapa 6; hasta entonces el botón queda
-                    desactivado en lugar de enlazar a una ruta que no existe. */}
-                <Button variant="gradient" fullWidth disabled>
+                <Button variant="gradient" fullWidth onClick={() => navigate('/checkout')}>
                   Ir al checkout
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  El pago y la agenda de citas se habilitan en el siguiente avance.
+                  Necesitas iniciar sesión para finalizar la compra.
                 </p>
               </Card>
             </div>

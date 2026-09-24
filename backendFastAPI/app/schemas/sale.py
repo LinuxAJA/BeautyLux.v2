@@ -275,6 +275,9 @@ class CreateSaleRequest(InputModel):
     channel: str | None = None
     client_id: int | None = None
     notes: str | None = None
+    # Reservas de cita hechas durante el checkout: al registrar la venta se
+    # confirman y quedan colgadas de su línea de servicio.
+    appointment_hold_ids: list[int] = []
 
     @field_validator("items")
     @classmethod
@@ -309,6 +312,13 @@ class CreateSaleRequest(InputModel):
         if value and len(value.strip()) > 255:
             raise ValueError("Las notas no pueden superar los 255 caracteres.")
         return value.strip() if value else value
+
+    @field_validator("appointment_hold_ids")
+    @classmethod
+    def _validate_holds(cls, value: list[int]) -> list[int]:
+        if len(value) != len(set(value)):
+            raise ValueError("Hay reservas de cita repetidas.")
+        return value
 
 
 class UpdateSaleStatusRequest(InputModel):

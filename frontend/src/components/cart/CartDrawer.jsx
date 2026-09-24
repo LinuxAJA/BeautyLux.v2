@@ -136,12 +136,12 @@ function CartDrawer() {
                 El envío y los impuestos se calculan al finalizar la compra.
               </p>
 
-              <Button variant="gradient" fullWidth onClick={() => navigate('/bolsa')}>
-                Ver la bolsa completa
+              <Button variant="gradient" fullWidth onClick={() => navigate('/checkout')}>
+                Ir al checkout
               </Button>
 
-              <Button variant="outline" fullWidth onClick={close}>
-                Seguir explorando
+              <Button variant="outline" fullWidth onClick={() => navigate('/bolsa')}>
+                Ver la bolsa completa
               </Button>
             </div>
           </>
