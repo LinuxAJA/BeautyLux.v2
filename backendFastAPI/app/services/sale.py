@@ -488,6 +488,14 @@ class SaleService:
             ip_address=ip_address,
         )
 
+        # La factura se emite sola al pagar la venta (requisito 7). `quiet`
+        # evita que un reintento o una carrera con la emisión manual del
+        # panel rompan el cambio de estado si la factura ya existía.
+        if status == "paid":
+            from app.services.invoice import invoice_service  # import diferido: evita el ciclo sale <-> invoice
+
+            invoice_service.issue(db, sale.id, actor=actor, ip_address=ip_address, quiet=True)
+
         updated = sale_repository.find_by_id_with_details(db, sale_id)
         return SaleOut.from_model(updated, with_details=True)
 

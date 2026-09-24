@@ -46,6 +46,8 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('appointments.read',   'appointments', 'read',   'Consultar citas'),
     ('appointments.create', 'appointments', 'create', 'Agendar citas'),
     ('appointments.update', 'appointments', 'update', 'Reprogramar o cancelar citas'),
+    ('invoices.read',       'invoices',    'read',   'Consultar facturas'),
+    ('invoices.create',     'invoices',    'create', 'Emitir facturas'),
     ('profile.read',      'profile',     'read',   'Consultar el propio perfil'),
     ('profile.update',    'profile',     'update', 'Editar el propio perfil');
 
@@ -65,6 +67,7 @@ WHERE r.name = 'employee' AND p.code IN (
     'categories.read',
     'sales.read', 'sales.create', 'sales.update', 'sales.status',
     'appointments.read', 'appointments.create', 'appointments.update',
+    'invoices.read', 'invoices.create',
     'profile.read', 'profile.update'
 );
 
@@ -76,6 +79,9 @@ WHERE r.name = 'client' AND p.code IN (
     -- por user_id lo aplica SaleService, no la matriz de permisos.
     'sales.read', 'sales.create',
     'appointments.read', 'appointments.create', 'appointments.update',
+    -- El cliente solo consulta y descarga sus propias facturas, nunca las
+    -- emite: eso es tarea del personal cuando marca la venta como pagada.
+    'invoices.read',
     'profile.read', 'profile.update'
 );
 

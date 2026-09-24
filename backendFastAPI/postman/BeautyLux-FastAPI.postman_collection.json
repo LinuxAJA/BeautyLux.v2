@@ -2157,6 +2157,428 @@
           }
         }
       ]
+    },
+    {
+      "name": "9. Facturación",
+      "item": [
+        {
+          "name": "POST /sales (venta para facturar, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('invoiceSaleId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    }\n  ],\n  \"shipping\": {\n    \"method\": \"pickup\"\n  },\n  \"paymentMethod\": \"card\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /invoices (venta pendiente, todavia sin pagar, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('explica que debe estar pagada', () => pm.expect(pm.response.json().message).to.include('pagada'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleId\": \"{{invoiceSaleId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /invoices (el cliente no puede emitir, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleId\": \"{{invoiceSaleId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /sales/:id/status (admin la marca pagada -> emite la factura sola, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('la venta queda pagada', () => pm.expect(pm.response.json().data.status).to.eql('paid'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{invoiceSaleId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "{{invoiceSaleId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /invoices (filtro por venta: se emitio sola, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const facturas = pm.response.json().data;",
+                  "pm.test('hay exactamente una factura', () => pm.expect(facturas).to.have.lengthOf(1));",
+                  "pm.test('asigna el consecutivo FAC-AAAA-NNNNN', () => pm.expect(facturas[0].invoiceNumber).to.match(/^FAC-[0-9]{4}-[0-9]{5}$/));",
+                  "pm.test('nace en estado emitida', () => pm.expect(facturas[0].status).to.eql('issued'));",
+                  "pm.test('el total coincide con el de la venta', () => pm.expect(facturas[0].total).to.be.above(0));",
+                  "pm.environment.set('invoiceId', facturas[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices?saleId={{invoiceSaleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ],
+              "query": [
+                {
+                  "key": "saleId",
+                  "value": "{{invoiceSaleId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /invoices (la venta ya tiene factura, 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('409 conflicto', () => pm.response.to.have.status(409));",
+                  "pm.test('lo explica en espanol', () => pm.expect(pm.response.json().message).to.include('ya tiene una factura'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleId\": \"{{invoiceSaleId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /invoices/:id (con su detalle, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const factura = pm.response.json().data;",
+                  "pm.test('trae las lineas', () => pm.expect(factura.details).to.be.an('array').that.is.not.empty);",
+                  "pm.test('trae el snapshot fiscal del comprador', () => pm.expect(factura.customer.firstName).to.be.a('string'));",
+                  "pm.test('referencia el numero de la venta', () => pm.expect(factura.saleNumber).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices",
+                "{{invoiceId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices/:id (factura inexistente, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 no encontrada', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices/:id/pdf (descarga el PDF, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('el tipo de contenido es PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));",
+                  "pm.test('adjunta un nombre de archivo', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('.pdf'));",
+                  "pm.test('el archivo no esta vacio', () => pm.expect(pm.response.responseSize).to.be.above(500));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices",
+                "{{invoiceId}}",
+                "pdf"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices (el cliente ve solo las de sus ventas, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('incluye la factura recien emitida', () => pm.expect(pm.response.json().data.map((f) => f.id)).to.include(Number(pm.environment.get('invoiceId'))));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices (sin autenticar, 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin sesion', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

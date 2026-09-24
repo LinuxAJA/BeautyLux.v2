@@ -3,6 +3,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   ListTree,
+  Receipt,
   LogOut,
   Package,
   ScrollText,
@@ -25,6 +26,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/admin/servicios', label: 'Servicios', icon: Wrench },
     { to: '/panel/admin/categorias', label: 'Categorías', icon: ListTree },
     { to: '/panel/admin/citas', label: 'Citas', icon: CalendarDays },
+    { to: '/panel/admin/facturas', label: 'Facturación', icon: Receipt },
     { to: '/panel/admin/bitacora', label: 'Bitácora', icon: ScrollText },
   ],
   employee: [
@@ -33,6 +35,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/empleado/productos', label: 'Productos', icon: Package },
     { to: '/panel/empleado/servicios', label: 'Servicios', icon: Wrench },
     { to: '/panel/empleado/citas', label: 'Citas', icon: CalendarDays },
+    { to: '/panel/empleado/facturas', label: 'Facturación', icon: Receipt },
   ],
   client: [
     { to: '/panel/cliente', label: 'Mi perfil', icon: User, end: true },

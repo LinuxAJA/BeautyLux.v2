@@ -55,6 +55,15 @@ class Settings(BaseSettings):
     # Frontend (para construir el enlace del correo de recuperación)
     FRONTEND_URL: str = Field(default="http://localhost:5173", min_length=1)
 
+    # Datos del negocio para la cabecera de facturas y reportes (etapas 7 y 8).
+    # Los mismos que muestra el pie de pagina del frontend
+    # (frontend/src/data/navLinks.js -> contactInfo), para que coincidan.
+    BUSINESS_NAME: str = "BeautyLux"
+    BUSINESS_NIT: str = "900.123.456-7"
+    BUSINESS_ADDRESS: str = "Calle 45 #23-18, Barrio La Castellana, Bogota D.C."
+    BUSINESS_PHONE: str = "+57 320 456 7890"
+    BUSINESS_EMAIL: str = "hola@beautylux.com"
+
     # Correo (SMTP). Con MAIL_ENABLED=false no se envía nada: el enlace se escribe en el log.
     MAIL_ENABLED: bool = False
     SMTP_HOST: str = "sandbox.smtp.mailtrap.io"

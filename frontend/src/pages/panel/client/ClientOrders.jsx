@@ -5,6 +5,7 @@ import { Eye } from 'lucide-react';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DataTable from '../../../components/dashboard/DataTable';
+import InvoiceDownloadButton from '../../../components/common/InvoiceDownloadButton';
 import { useApi } from '../../../hooks/useApi';
 import * as salesService from '../../../services/sales.service';
 import { formatPrice } from '../../../data/products';
@@ -52,14 +53,21 @@ function ClientOrders() {
       key: 'actions',
       header: 'Acciones',
       render: (row) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Ver el pedido ${row.saleNumber}`}
-          onClick={() => navigate(`/pedido/${row.saleNumber}`)}
-        >
-          <Eye className="size-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Ver el pedido ${row.saleNumber}`}
+            onClick={() => navigate(`/pedido/${row.saleNumber}`)}
+          >
+            <Eye className="size-4" />
+          </Button>
+          {/* Una venta pendiente todavía no tiene factura: sin consulta de
+              más, ya se sabe que no habría nada que mostrar. */}
+          {row.status !== 'pending' && (
+            <InvoiceDownloadButton saleId={row.id} label="Factura" variant="ghost" />
+          )}
+        </div>
       ),
     },
   ];

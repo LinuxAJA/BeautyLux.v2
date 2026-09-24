@@ -7,9 +7,11 @@
 --   roles      = roles         services = servicios   password_resets = recuperación de contraseña
 --   permissions= permisos      categories = categorías audit_logs     = bitácora de auditoría
 --
--- Quinto avance — modulo de ventas (etapa 4) y agenda (etapa 5):
+-- Quinto avance — modulo de ventas (etapa 4), agenda (etapa 5) y
+-- facturacion (etapa 7):
 --   sales      = ventas        sale_details   = detalle de venta
 --   appointments = citas       business_hours = horario de atencion
+--   invoices   = facturas      invoice_details = detalle de factura
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS db_beautylux_v2
@@ -20,6 +22,8 @@ USE db_beautylux_v2;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS invoice_details;
+DROP TABLE IF EXISTS invoices;
 DROP TABLE IF EXISTS appointments;
 DROP TABLE IF EXISTS business_hours;
 DROP TABLE IF EXISTS sale_details;
@@ -432,4 +436,73 @@ CREATE TABLE appointments (
     -- un dia, ordenadas por hora de inicio.
     INDEX idx_appointments_agenda (scheduled_date, status, start_time),
     INDEX idx_appointments_hold_expires (hold_expires_at)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- invoices — factura de una venta (quinto avance, requisitos 7, 8 y 9)
+--
+-- `sale_id` es UNIQUE: una venta tiene a lo sumo una factura. Se emite
+-- automaticamente cuando la venta pasa a `paid` (ver SaleService), pero
+-- tambien puede emitirse a mano desde el panel.
+--
+-- Los datos fiscales del comprador se copian aqui, igual que en `sales`: si
+-- la cuenta cambia despues su documento o su direccion, la factura ya
+-- impresa no debe cambiar. `subtotal`/`discount_total`/`tax_total`/`total`
+-- son una copia de los de la venta en el momento de emitir, no un enlace: la
+-- factura queda congelada aunque la venta se cancele mas tarde.
+-- ---------------------------------------------------------------------
+CREATE TABLE invoices (
+    id                       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    invoice_number           VARCHAR(20)  NOT NULL,
+    sale_id                  INT UNSIGNED NOT NULL,
+    customer_first_name      VARCHAR(40)  NOT NULL,
+    customer_last_name       VARCHAR(40)  NOT NULL,
+    customer_document_type   VARCHAR(5)   NULL,
+    customer_document_number VARCHAR(20)  NULL,
+    customer_email           VARCHAR(60)  NULL,
+    customer_phone           VARCHAR(20)  NULL,
+    customer_address         VARCHAR(120) NULL,
+    subtotal                 DECIMAL(12, 2) NOT NULL,
+    discount_total           DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    tax_total                DECIMAL(12, 2) NOT NULL,
+    total                    DECIMAL(12, 2) NOT NULL,
+    status                   ENUM('issued', 'paid', 'void') NOT NULL DEFAULT 'issued',
+    issued_at                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    voided_at                DATETIME NULL,
+    created_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_invoices_number UNIQUE (invoice_number),
+    CONSTRAINT uq_invoices_sale UNIQUE (sale_id),
+    CONSTRAINT fk_invoices_sale
+        FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT chk_invoices_totals CHECK (
+        subtotal >= 0 AND discount_total >= 0 AND tax_total >= 0 AND total >= 0
+    ),
+    INDEX idx_invoices_status (status),
+    INDEX idx_invoices_issued_at (issued_at)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- invoice_details — lineas de la factura, snapshot de sale_details
+--
+-- Se copian en el momento de emitir para que la factura quede congelada:
+-- si mas tarde se reimprime, muestra exactamente lo que se facturo, no lo
+-- que diga hoy `sale_details` (que ni siquiera cambia, pero la copia es la
+-- garantia de que nunca podria hacerlo).
+-- ---------------------------------------------------------------------
+CREATE TABLE invoice_details (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    invoice_id   INT UNSIGNED NOT NULL,
+    description  VARCHAR(160) NOT NULL,
+    quantity     INT UNSIGNED NOT NULL DEFAULT 1,
+    unit_price   DECIMAL(12, 2) NOT NULL,
+    discount     DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    tax_rate     DECIMAL(5, 2)  NOT NULL DEFAULT 0,
+    subtotal     DECIMAL(12, 2) NOT NULL,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_invoice_details_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT chk_invoice_details_quantity CHECK (quantity > 0),
+    CONSTRAINT chk_invoice_details_amounts CHECK (unit_price >= 0 AND discount >= 0 AND subtotal >= 0),
+    INDEX idx_invoice_details_invoice (invoice_id)
 ) ENGINE = InnoDB;
