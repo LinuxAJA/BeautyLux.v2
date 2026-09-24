@@ -74,6 +74,14 @@ class Settings(BaseSettings):
     SMTP_SECURITY: Literal["starttls", "ssl", "none"] = "starttls"
     SMTP_TIMEOUT_SECONDS: int = Field(default=10, gt=0)
 
+    # Chatbot con IA (etapa 12). Con AI_ENABLED=false, o sin GEMINI_API_KEY,
+    # el chat sigue funcionando con respuestas de respaldo por FAQ local —
+    # nunca se cae por falta de credenciales.
+    AI_PROVIDER: str = "gemini"
+    GEMINI_API_KEY: str = ""
+    AI_MODEL: str = "gemini-3.5-flash-lite"
+    AI_ENABLED: bool = False
+
     @field_validator("JWT_ACCESS_SECRET")
     @classmethod
     def _validate_secret_length(cls, value: str) -> str:

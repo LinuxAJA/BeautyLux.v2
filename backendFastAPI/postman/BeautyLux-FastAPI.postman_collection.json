@@ -4243,6 +4243,378 @@
           }
         }
       ]
+    },
+    {
+      "name": "13. Chat",
+      "item": [
+        {
+          "name": "POST /chat/conversations (publica, sin sesion, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('trae sessionToken', () => pm.expect(datos.sessionToken).to.be.a('string').with.lengthOf(36));",
+                  "pm.environment.set('chatAnonId', datos.id);",
+                  "pm.environment.set('chatAnonToken', datos.sessionToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /chat/conversations/{id}/messages (anonimo, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('responde con el mensaje del usuario y la respuesta del asistente', () => { pm.expect(datos.userMessage.role).to.eql('user'); pm.expect(datos.assistantMessage.role).to.eql('assistant'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Cual es el costo de envio?\",\n  \"sessionToken\": \"{{chatAnonToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAnonId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAnonId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /chat/conversations/{id}/messages (sessionToken equivocado, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404: no confirma ni niega existencia', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"hola\",\n  \"sessionToken\": \"00000000-0000-0000-0000-000000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAnonId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAnonId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /chat/conversations/{id}/messages (con sessionToken correcto, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('trae los mensajes en orden', () => pm.expect(pm.response.json().data.length).to.be.at.least(2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAnonId}}/messages?sessionToken={{chatAnonToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAnonId}}",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "sessionToken",
+                  "value": "{{chatAnonToken}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /chat/conversations/{id}/messages (sin sessionToken ni sesion, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 no encontrada', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAnonId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAnonId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /chat/conversations (autenticado como cliente, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('chatAuthId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /chat/conversations/{id}/messages (autenticado, menciona pqr, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "pm.test('responde con el enlace a /pqr', () => pm.expect(pm.response.json().data.assistantMessage.content).to.include('/pqr'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Quiero radicar una queja\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAuthId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAuthId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /chat/conversations/{id}/messages (otra cuenta, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404: no puede leer la conversacion de otro usuario', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAuthId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAuthId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /chat/conversations/{id}/messages (mensaje vacio, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"   \",\n  \"sessionToken\": \"{{chatAnonToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/{{chatAnonId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "{{chatAnonId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /chat/conversations/{id}/messages (conversacion inexistente, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 no encontrada', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/chat/conversations/99999/messages?sessionToken=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "conversations",
+                "99999",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "sessionToken",
+                  "value": "x"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
