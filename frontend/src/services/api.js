@@ -86,4 +86,62 @@ export async function apiRequest(path, options = {}) {
   }
 }
 
+/**
+ * Extrae el nombre de archivo de la cabecera `Content-Disposition` que manda
+ * el backend (`attachment; filename="FAC-2026-00001.pdf"`).
+ */
+function filenameFromDisposition(header) {
+  if (!header) return null;
+  const match = header.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Descarga un binario (PDF, Excel...) en vez de esperar JSON.
+ *
+ * `rawRequest` da por hecho que la respuesta es JSON — hace `JSON.stringify`
+ * del body y `response.json()` de la respuesta — así que no sirve para los
+ * archivos que descargan las facturas (etapa 7) y los reportes (etapa 8).
+ * Comparte con `apiRequest` el mismo access token en memoria, `credentials:
+ * 'include'` y el reintento único ante `TOKEN_EXPIRED`.
+ */
+async function rawDownload(path, { skipAuth = false } = {}) {
+  const headers = {};
+  if (!skipAuth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const isJson = response.headers.get('content-type')?.includes('application/json');
+    const payload = isJson ? await response.json() : null;
+    throw new ApiError({
+      status: response.status,
+      code: payload?.code ?? 'UNKNOWN_ERROR',
+      message: payload?.message ?? 'No se pudo descargar el archivo.',
+      errors: payload?.errors,
+    });
+  }
+
+  const blob = await response.blob();
+  const filename = filenameFromDisposition(response.headers.get('content-disposition'));
+  return { blob, filename };
+}
+
+/** Punto de entrada para descargar binarios. Devuelve `{ blob, filename }`. */
+export async function downloadRequest(path, options = {}) {
+  try {
+    return await rawDownload(path, options);
+  } catch (error) {
+    const shouldRetry = error instanceof ApiError && error.code === 'TOKEN_EXPIRED' && !options.skipAuth;
+    if (!shouldRetry) throw error;
+
+    await refreshAccessToken();
+    return rawDownload(path, options);
+  }
+}
+
 export default apiRequest;

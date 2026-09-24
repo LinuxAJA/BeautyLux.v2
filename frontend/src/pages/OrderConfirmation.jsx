@@ -3,6 +3,7 @@ import { CalendarCheck, CircleCheck, MapPin, Package, Sparkles } from 'lucide-re
 
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import InvoiceDownloadButton from '../components/common/InvoiceDownloadButton';
 import OrderSummary from '../components/cart/OrderSummary';
 import PageHero from '../components/ui/PageHero';
 import { useApi } from '../hooks/useApi';
@@ -185,6 +186,7 @@ function OrderConfirmation() {
           <div className="lg:col-span-5">
             <Card className="sticky top-24 space-y-4 p-5">
               <h2 className="font-serif text-lg font-semibold">Resumen</h2>
+              <InvoiceDownloadButton saleId={sale.id} variant="outline" fullWidth />
               <OrderSummary
                 items={(sale.details ?? []).map((line) => ({
                   key: line.id,
@@ -198,7 +200,6 @@ function OrderConfirmation() {
                 total={sale.total}
                 shippingMethod={sale.shipping.method}
               />
-              {/* La descarga de la factura llega con la etapa 7. */}
             </Card>
           </div>
         </div>
