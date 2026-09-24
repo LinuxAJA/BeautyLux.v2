@@ -7,18 +7,22 @@ import {
   CircleAlert,
   IdCard,
   MessageCircle,
+  MessageSquare,
   Package,
   ShieldCheck,
   ShoppingBag,
 } from 'lucide-react';
 
+import StatCard from '../../../components/dashboard/StatCard';
 import StatusBadge from '../../../components/dashboard/StatusBadge';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import PasswordInput from '../../../components/auth/PasswordInput';
+import { useApi } from '../../../hooks/useApi';
 import { useAuth } from '../../../hooks/useAuth';
 import useForm from '../../../hooks/useForm';
 import * as authService from '../../../services/auth.service';
+import * as statsService from '../../../services/stats.service';
 import { addressRule, passwordRule, phoneRule } from '../../../utils/validators';
 
 const profileSchema = { address: addressRule, phone: phoneRule };
@@ -48,6 +52,7 @@ function ClientDashboard() {
   const { user, refreshProfile } = useAuth();
   const [profileMessage, setProfileMessage] = useState(null);
   const [passwordMessage, setPasswordMessage] = useState(null);
+  const { data: summary } = useApi(() => statsService.getMySummary(), []);
 
   const profileForm = useForm(
     { firstName: user.firstName, lastName: user.lastName, address: user.address, phone: user.phone },
@@ -102,6 +107,12 @@ function ClientDashboard() {
       <div>
         <h1 className="font-serif text-2xl font-semibold">Mi perfil</h1>
         <p className="text-sm text-muted-foreground">Bienvenida, {user.firstName}. Aquí puedes actualizar tus datos.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard icon={Package} label="Mis pedidos" value={summary?.ordersCount} />
+        <StatCard icon={CalendarCheck} label="Citas próximas" value={summary?.upcomingAppointments} />
+        <StatCard icon={MessageSquare} label="PQR abiertas" value={summary?.pqrOpen} />
       </div>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-card">

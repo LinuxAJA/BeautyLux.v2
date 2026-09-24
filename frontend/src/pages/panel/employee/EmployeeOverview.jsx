@@ -1,12 +1,13 @@
 import { Link } from 'react-router';
-import { ArrowRight, Package, ShoppingCart, Users, Wrench } from 'lucide-react';
+import { ArrowRight, CalendarClock, MessageSquare, Package, ShoppingCart, Users, Wrench } from 'lucide-react';
 
+import ChartCard from '../../../components/dashboard/ChartCard';
 import StatCard from '../../../components/dashboard/StatCard';
+import SalesLineChart from '../../../components/dashboard/SalesLineChart';
 import { useApi } from '../../../hooks/useApi';
 import { useAuth } from '../../../hooks/useAuth';
-import * as usersService from '../../../services/users.service';
-import * as productsService from '../../../services/products.service';
-import * as servicesService from '../../../services/services.service';
+import * as statsService from '../../../services/stats.service';
+import { formatPrice } from '../../../data/products';
 
 const QUICK_LINKS = [
   { to: '/panel/empleado/pos', label: 'Punto de venta', icon: ShoppingCart },
@@ -17,9 +18,11 @@ const QUICK_LINKS = [
 
 function EmployeeOverview() {
   const { user } = useAuth();
-  const { meta: clientsMeta } = useApi(() => usersService.listUsers({ role: 'client', perPage: 1 }), []);
-  const { meta: productsMeta } = useApi(() => productsService.listProducts({ perPage: 1 }), []);
-  const { meta: servicesMeta } = useApi(() => servicesService.listServices({ perPage: 1 }), []);
+  const { data: summary } = useApi(() => statsService.getEmployeeSummary(), []);
+  const { data: series, isLoading: isLoadingSeries } = useApi(
+    () => statsService.getSalesSeries({ groupBy: 'day', channel: 'pos' }),
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -31,11 +34,25 @@ function EmployeeOverview() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Users} label="Clientes registrados" value={clientsMeta?.total} />
-        <StatCard icon={Package} label="Productos en catálogo" value={productsMeta?.total} />
-        <StatCard icon={Wrench} label="Servicios activos" value={servicesMeta?.total} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard icon={ShoppingCart} label="Ventas de hoy" value={summary?.salesTodayCount} />
+        <StatCard
+          icon={ShoppingCart}
+          label="Ingresos de hoy"
+          value={summary ? formatPrice(summary.salesTodayTotal) : undefined}
+        />
+        <StatCard icon={CalendarClock} label="Citas de hoy" value={summary?.appointmentsToday} />
+        <StatCard icon={MessageSquare} label="PQR asignadas" value={summary?.pqrAssigned} />
       </div>
+
+      <ChartCard
+        title="Ventas del mostrador"
+        subtitle="Punto de venta, por día."
+        isEmpty={!isLoadingSeries && (series ?? []).length === 0}
+        emptyMessage="Todavía no hay ventas registradas en el punto de venta."
+      >
+        {!isLoadingSeries && (series ?? []).length > 0 && <SalesLineChart data={series} />}
+      </ChartCard>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {QUICK_LINKS.map(({ to, label, icon: Icon }) => (
