@@ -67,10 +67,8 @@ def _run_sql_file(filename: str) -> None:
     conn = _connect()
     try:
         with conn.cursor() as cursor:
-            # pymysql no soporta multi-statement nativo como mysql2; se divide
-            # respetando que no haya `;` dentro de valores. Los scripts del
-            # proyecto no usan `;` embebido en literales, así que un split simple
-            # por línea que termina en `;` es seguro para este caso.
+            # pymysql no soporta multi-statement nativo como mysql2, así que el
+            # script se divide aquí en sentencias sueltas.
             statements = _split_statements(sql_text)
             for statement in statements:
                 if statement.strip():
@@ -81,8 +79,14 @@ def _run_sql_file(filename: str) -> None:
 
 
 def _split_statements(sql_text: str) -> list[str]:
-    """Divide un script SQL en sentencias individuales, ignorando comentarios
-    de línea (`--`) y respetando que DELIMITER no se usa en este proyecto."""
+    """Divide un script SQL en sentencias individuales.
+
+    Ignora los comentarios de línea (`--`) y corta solo por los `;` que quedan
+    fuera de un literal. Partir directamente por `;` no sirve: seed.sql tiene
+    descripciones como 'Gestiona clientes...; sin privilegios...', y cortarlas
+    por la mitad deja media sentencia y un error de sintaxis de MySQL.
+    DELIMITER no se usa en este proyecto, así que no hay que contemplarlo.
+    """
     lines = []
     for line in sql_text.splitlines():
         stripped = line.strip()
@@ -90,8 +94,41 @@ def _split_statements(sql_text: str) -> list[str]:
             continue
         lines.append(line)
     cleaned = "\n".join(lines)
-    statements = [s.strip() for s in cleaned.split(";")]
-    return [s for s in statements if s]
+
+    statements: list[str] = []
+    current: list[str] = []
+    quote: str | None = None
+    index = 0
+
+    while index < len(cleaned):
+        char = cleaned[index]
+
+        if quote:
+            current.append(char)
+            # Dentro de un literal, MySQL escapa la comilla con barra invertida
+            # o duplicándola.
+            if char == "\\" and index + 1 < len(cleaned):
+                index += 1
+                current.append(cleaned[index])
+            elif char == quote:
+                if index + 1 < len(cleaned) and cleaned[index + 1] == quote:
+                    index += 1
+                    current.append(cleaned[index])
+                else:
+                    quote = None
+        elif char in ("'", '"', "`"):
+            quote = char
+            current.append(char)
+        elif char == ";":
+            statements.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+
+        index += 1
+
+    statements.append("".join(current).strip())
+    return [statement for statement in statements if statement]
 
 
 def schema() -> None:

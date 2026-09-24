@@ -6,6 +6,9 @@
 --   users      = usuarios      products = productos   sessions        = sesiones
 --   roles      = roles         services = servicios   password_resets = recuperación de contraseña
 --   permissions= permisos      categories = categorías audit_logs     = bitácora de auditoría
+--
+-- Quinto avance — modulo de ventas (etapa 4):
+--   sales      = ventas        sale_details = detalle de venta
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS db_beautylux_v2
@@ -16,6 +19,8 @@ USE db_beautylux_v2;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS sale_details;
+DROP TABLE IF EXISTS sales;
 DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS sessions;
@@ -238,4 +243,107 @@ CREATE TABLE audit_logs (
     INDEX idx_audit_logs_user (user_id),
     INDEX idx_audit_logs_entity (entity),
     INDEX idx_audit_logs_created_at (created_at)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- sales — cabecera de la venta (quinto avance, requisitos 1, 2, 3 y 14)
+--
+-- Los datos del cliente y del despacho se guardan como SNAPSHOT: si el
+-- usuario cambia luego su direccion o su telefono, la venta ya emitida debe
+-- seguir mostrando lo que se pacto en su momento. Por eso `user_id` puede
+-- quedar en NULL (cliente eliminado, o venta de mostrador a consumidor final)
+-- sin que la venta pierda a quien se le vendio.
+--
+-- Los totales estan en DECIMAL(12, 2), nunca en coma flotante, y los calcula
+-- siempre el servidor: lo que mande el cliente en el body se ignora.
+-- ---------------------------------------------------------------------
+CREATE TABLE sales (
+    id                       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sale_number              VARCHAR(20)  NOT NULL,
+    user_id                  INT UNSIGNED NULL,
+    staff_id                 INT UNSIGNED NULL,
+    channel                  ENUM('web', 'pos') NOT NULL DEFAULT 'web',
+    customer_first_name      VARCHAR(40)  NOT NULL,
+    customer_last_name       VARCHAR(40)  NOT NULL,
+    customer_document_type   VARCHAR(5)   NULL,
+    customer_document_number VARCHAR(20)  NULL,
+    customer_email           VARCHAR(60)  NULL,
+    customer_phone           VARCHAR(20)  NULL,
+    shipping_method          ENUM('standard', 'express', 'pickup') NOT NULL DEFAULT 'standard',
+    shipping_address         VARCHAR(120) NULL,
+    shipping_city            VARCHAR(60)  NULL,
+    shipping_notes           VARCHAR(255) NULL,
+    payment_method           ENUM('card', 'pse', 'nequi', 'cash') NOT NULL DEFAULT 'card',
+    subtotal                 DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    discount_total           DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    tax_total                DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    shipping_cost            DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    total                    DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    status                   ENUM('pending', 'paid', 'processing', 'completed', 'cancelled')
+                             NOT NULL DEFAULT 'pending',
+    notes                    VARCHAR(255) NULL,
+    sold_at                  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at               DATETIME NULL,
+    created_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_sales_number UNIQUE (sale_number),
+    CONSTRAINT fk_sales_user
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_sales_staff
+        FOREIGN KEY (staff_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT chk_sales_totals CHECK (
+        subtotal >= 0 AND discount_total >= 0 AND tax_total >= 0
+        AND shipping_cost >= 0 AND total >= 0
+    ),
+    INDEX idx_sales_user (user_id),
+    INDEX idx_sales_staff (staff_id),
+    INDEX idx_sales_status (status),
+    INDEX idx_sales_channel (channel),
+    INDEX idx_sales_sold_at (sold_at),
+    INDEX idx_sales_deleted_at (deleted_at)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- sale_details — una linea por producto o servicio vendido
+--
+-- `product_id` y `service_id` son excluyentes y ambos admiten NULL con
+-- ON DELETE SET NULL: si manana se elimina un producto del catalogo, la
+-- venta historica no se rompe, porque el nombre, el SKU y el precio quedaron
+-- copiados en la propia linea. `duration_minutes` viaja aqui para que la
+-- agenda de citas sepa cuanto dura el servicio que se compro, aunque despues
+-- se edite la duracion en el catalogo.
+-- ---------------------------------------------------------------------
+CREATE TABLE sale_details (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sale_id          INT UNSIGNED NOT NULL,
+    item_type        ENUM('product', 'service') NOT NULL,
+    product_id       INT UNSIGNED NULL,
+    service_id       INT UNSIGNED NULL,
+    item_name        VARCHAR(120) NOT NULL,
+    item_sku         VARCHAR(40)  NULL,
+    unit_price       DECIMAL(12, 2) NOT NULL,
+    quantity         INT UNSIGNED NOT NULL DEFAULT 1,
+    discount         DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    tax_rate         DECIMAL(5, 2)  NOT NULL DEFAULT 0,
+    subtotal         DECIMAL(12, 2) NOT NULL,
+    duration_minutes SMALLINT UNSIGNED NULL,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sale_details_sale
+        FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_sale_details_product
+        FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_sale_details_service
+        FOREIGN KEY (service_id) REFERENCES services (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT chk_sale_details_quantity CHECK (quantity > 0),
+    CONSTRAINT chk_sale_details_amounts CHECK (unit_price >= 0 AND discount >= 0 AND subtotal >= 0),
+    -- Una linea es de un producto o de un servicio, nunca de los dos. No se
+    -- puede expresar como CHECK: MySQL 8 rechaza un CHECK sobre una columna
+    -- que participa en una FK con accion referencial (ON DELETE SET NULL),
+    -- con el error 3823. La regla la garantiza SaleService._build_lines(),
+    -- que es el unico camino por el que se escriben estas filas.
+    INDEX idx_sale_details_item_pair (item_type, product_id, service_id),
+    INDEX idx_sale_details_sale (sale_id),
+    INDEX idx_sale_details_product (product_id),
+    INDEX idx_sale_details_service (service_id),
+    INDEX idx_sale_details_type (item_type)
 ) ENGINE = InnoDB;

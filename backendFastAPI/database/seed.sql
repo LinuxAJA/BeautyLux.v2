@@ -39,6 +39,10 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('roles.read',        'roles',       'read',   'Consultar roles'),
     ('permissions.read',  'permissions', 'read',   'Consultar permisos'),
     ('audit.read',        'audit',       'read',   'Consultar la bitácora de auditoría'),
+    ('sales.read',        'sales',       'read',   'Consultar ventas'),
+    ('sales.create',      'sales',       'create', 'Registrar ventas'),
+    ('sales.update',      'sales',       'update', 'Editar ventas'),
+    ('sales.status',      'sales',       'status', 'Cambiar el estado de una venta'),
     ('profile.read',      'profile',     'read',   'Consultar el propio perfil'),
     ('profile.update',    'profile',     'update', 'Editar el propio perfil');
 
@@ -56,6 +60,7 @@ WHERE r.name = 'employee' AND p.code IN (
     'products.read', 'products.create', 'products.update',
     'services.read', 'services.create', 'services.update',
     'categories.read',
+    'sales.read', 'sales.create', 'sales.update', 'sales.status',
     'profile.read', 'profile.update'
 );
 
@@ -63,6 +68,9 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.name = 'client' AND p.code IN (
     'products.read', 'services.read', 'categories.read',
+    -- El cliente compra y consulta, pero solo sus propias ventas: el filtro
+    -- por user_id lo aplica SaleService, no la matriz de permisos.
+    'sales.read', 'sales.create',
     'profile.read', 'profile.update'
 );
 
