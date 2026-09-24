@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowRight, Package, Users, Wrench } from 'lucide-react';
+import { ArrowRight, Package, ShoppingCart, Users, Wrench } from 'lucide-react';
 
 import StatCard from '../../../components/dashboard/StatCard';
 import { useApi } from '../../../hooks/useApi';
@@ -9,6 +9,7 @@ import * as productsService from '../../../services/products.service';
 import * as servicesService from '../../../services/services.service';
 
 const QUICK_LINKS = [
+  { to: '/panel/empleado/pos', label: 'Punto de venta', icon: ShoppingCart },
   { to: '/panel/empleado/clientes', label: 'Ver clientes', icon: Users },
   { to: '/panel/empleado/productos', label: 'Gestionar productos', icon: Package },
   { to: '/panel/empleado/servicios', label: 'Gestionar servicios', icon: Wrench },
@@ -36,7 +37,7 @@ function EmployeeOverview() {
         <StatCard icon={Wrench} label="Servicios activos" value={servicesMeta?.total} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {QUICK_LINKS.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
