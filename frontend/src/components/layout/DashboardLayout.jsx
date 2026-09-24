@@ -15,7 +15,7 @@ import {
   Wrench,
 } from 'lucide-react';
 
-import WhatsAppButton from '../common/WhatsAppButton';
+import FloatingActions from '../chat/FloatingActions';
 import BrandLogo from '../ui/BrandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import useScrollTop from '../../hooks/useScrollTop';
@@ -119,7 +119,7 @@ function DashboardLayout() {
         </main>
       </div>
 
-      <WhatsAppButton />
+      <FloatingActions />
     </div>
   );
 }

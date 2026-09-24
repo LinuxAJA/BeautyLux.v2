@@ -8,9 +8,11 @@ from app.models.appointment import Appointment
 from app.models.audit_log import AuditLog
 from app.models.business_hours import BusinessHours
 from app.models.category import Category
+from app.models.conversation import Conversation
 from app.models.document_type import DocumentType
 from app.models.invoice import Invoice
 from app.models.invoice_detail import InvoiceDetail
+from app.models.message import Message
 from app.models.password_reset import PasswordReset
 from app.models.permission import Permission, role_permissions
 from app.models.pqr import Pqr
@@ -27,9 +29,11 @@ __all__ = [
     "AuditLog",
     "BusinessHours",
     "Category",
+    "Conversation",
     "DocumentType",
     "Invoice",
     "InvoiceDetail",
+    "Message",
     "PasswordReset",
     "Permission",
     "Pqr",

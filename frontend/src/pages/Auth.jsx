@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, Star } from 'lucide-react';
 
-import WhatsAppButton from '../components/common/WhatsAppButton';
+import FloatingActions from '../components/chat/FloatingActions';
 import BrandLogo from '../components/ui/BrandLogo';
 import LoginForm from '../components/auth/LoginForm';
 import RecoverPassword from '../components/auth/RecoverPassword';
@@ -103,7 +103,7 @@ function Auth({ initialView = 'login' }) {
         onRegistered={() => setView('login')}
       />
 
-      <WhatsAppButton />
+      <FloatingActions />
     </div>
   );
 }

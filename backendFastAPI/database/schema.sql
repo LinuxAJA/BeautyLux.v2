@@ -8,11 +8,12 @@
 --   permissions= permisos      categories = categorías audit_logs     = bitácora de auditoría
 --
 -- Quinto avance — modulo de ventas (etapa 4), agenda (etapa 5),
--- facturacion (etapa 7) y PQR (etapa 11):
+-- facturacion (etapa 7), PQR (etapa 11) y chatbot con IA (etapa 12):
 --   sales      = ventas        sale_details   = detalle de venta
 --   appointments = citas       business_hours = horario de atencion
 --   invoices   = facturas      invoice_details = detalle de factura
 --   pqr        = peticiones, quejas, reclamos y sugerencias
+--   conversations = conversaciones del chat   messages = mensajes del chat
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS db_beautylux_v2
@@ -23,6 +24,8 @@ USE db_beautylux_v2;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS pqr;
 DROP TABLE IF EXISTS invoice_details;
 DROP TABLE IF EXISTS invoices;
@@ -554,4 +557,43 @@ CREATE TABLE pqr (
     INDEX idx_pqr_status (status),
     INDEX idx_pqr_type (type),
     INDEX idx_pqr_created_at (created_at)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- conversations — sesiones del chatbot (quinto avance, etapa 12,
+-- requisitos 17-19)
+--
+-- `user_id` es opcional: el chat funciona sin sesión, igual que la
+-- radicación de PQR. `session_token` identifica la conversación en el
+-- navegador de quien escribe (se guarda en `localStorage`, nunca es un
+-- token de autenticación) y es lo que prueba la propiedad de una
+-- conversación anónima al leerla o seguir escribiendo en ella; para una
+-- conversación ligada a una cuenta, la propiedad la prueba `user_id`.
+-- ---------------------------------------------------------------------
+CREATE TABLE conversations (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id        INT UNSIGNED NULL,
+    session_token  CHAR(36) NOT NULL,
+    status         ENUM('open', 'closed') NOT NULL DEFAULT 'open',
+    started_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    closed_at      DATETIME NULL,
+    CONSTRAINT uq_conversations_session_token UNIQUE (session_token),
+    CONSTRAINT fk_conversations_user
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX idx_conversations_user (user_id)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- messages — turnos del chat, en orden de `created_at`
+-- ---------------------------------------------------------------------
+CREATE TABLE messages (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conversation_id  INT UNSIGNED NOT NULL,
+    role             ENUM('user', 'assistant', 'system') NOT NULL,
+    content          TEXT NOT NULL,
+    tokens_used      INT UNSIGNED NULL,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_messages_conversation
+        FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_messages_conversation (conversation_id)
 ) ENGINE = InnoDB;

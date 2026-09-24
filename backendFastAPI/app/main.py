@@ -22,7 +22,7 @@ from app.middleware.error_handler import register_exception_handlers
 from app.middleware.rate_limit import limiter
 from app.middleware.request_logger import RequestLoggerMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
-from app.routers import appointments, auth, categories, invoices, meta, products, pqr, reports, sales, services, stats, users
+from app.routers import appointments, auth, categories, chat, invoices, meta, products, pqr, reports, sales, services, stats, users
 from app.services.maintenance import purge_expired_tokens
 from app.services.permission import permission_service
 
@@ -83,6 +83,7 @@ tags_metadata = [
     {"name": "Reportes", "description": "Reporte diario de ventas: consulta en JSON o descarga en PDF y Excel."},
     {"name": "Estadísticas", "description": "Totales y series agregadas para los dashboards por rol."},
     {"name": "PQR", "description": "Peticiones, quejas, reclamos y sugerencias: radicación pública, seguimiento y respuesta del personal."},
+    {"name": "Chat", "description": "Chatbot con IA (Google Gemini): abrir conversación, enviar mensajes y ver el historial. Público y autenticado."},
     {"name": "Metadatos", "description": "Salud del servicio, tipos de documento, roles, permisos y auditoría."},
 ]
 
@@ -124,4 +125,5 @@ app.include_router(invoices.router, prefix=api_router_prefix)
 app.include_router(reports.router, prefix=api_router_prefix)
 app.include_router(stats.router, prefix=api_router_prefix)
 app.include_router(pqr.router, prefix=api_router_prefix)
+app.include_router(chat.router, prefix=api_router_prefix)
 app.include_router(meta.router, prefix=api_router_prefix)
