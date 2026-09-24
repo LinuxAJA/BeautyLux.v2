@@ -22,7 +22,7 @@ from app.middleware.error_handler import register_exception_handlers
 from app.middleware.rate_limit import limiter
 from app.middleware.request_logger import RequestLoggerMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
-from app.routers import appointments, auth, categories, invoices, meta, products, sales, services, users
+from app.routers import appointments, auth, categories, invoices, meta, products, reports, sales, services, users
 from app.services.maintenance import purge_expired_tokens
 from app.services.permission import permission_service
 
@@ -80,6 +80,7 @@ tags_metadata = [
     {"name": "Ventas", "description": "Registro e historial de ventas. El cliente ve solo las suyas; admin y empleado, todas."},
     {"name": "Citas", "description": "Agenda de los servicios: disponibilidad, reserva, confirmación, reprogramación y cancelación."},
     {"name": "Facturación", "description": "Facturas de venta, consulta y descarga en PDF."},
+    {"name": "Reportes", "description": "Reporte diario de ventas: consulta en JSON o descarga en PDF y Excel."},
     {"name": "Metadatos", "description": "Salud del servicio, tipos de documento, roles, permisos y auditoría."},
 ]
 
@@ -118,4 +119,5 @@ app.include_router(categories.router, prefix=api_router_prefix)
 app.include_router(sales.router, prefix=api_router_prefix)
 app.include_router(appointments.router, prefix=api_router_prefix)
 app.include_router(invoices.router, prefix=api_router_prefix)
+app.include_router(reports.router, prefix=api_router_prefix)
 app.include_router(meta.router, prefix=api_router_prefix)

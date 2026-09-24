@@ -1,8 +1,10 @@
 """Generación de PDF con reportlab — quinto avance, etapas 7 y 8.
 
-`render_invoice_pdf()` es la plantilla de la factura (etapa 7); la etapa 8
-reutiliza las piezas de aquí (colores, cabecera) para el reporte diario.
-No hay equivalente en el backend Node: ninguno de los dos genera PDF.
+`render_invoice_pdf()` es la plantilla de la factura (etapa 7);
+`render_daily_sales_report_pdf()` es la del reporte diario (etapa 8), y
+reutiliza de aquí los colores, la cabecera del negocio y el pie de
+generación. No hay equivalente en el backend Node: ninguno de los dos genera
+PDF.
 """
 
 from __future__ import annotations
@@ -47,6 +49,7 @@ _BODY_STYLE = ParagraphStyle("BeautyLuxBody", parent=_styles["Normal"], fontSize
 _FOOTER_STYLE = ParagraphStyle(
     "BeautyLuxFooter", parent=_styles["Normal"], fontSize=7.5, textColor=MUTED, alignment=1
 )
+_TABLE_CELL_STYLE = ParagraphStyle("BeautyLuxTableCell", parent=_styles["Normal"], fontSize=7.5, leading=10)
 
 
 def _money(value: Decimal | float) -> str:
@@ -206,3 +209,116 @@ def render_invoice_pdf(invoice) -> bytes:
 def _invoice_status_label(status: str) -> str:
     labels = {"issued": "Emitida", "paid": "Pagada", "void": "Anulada"}
     return labels.get(status, status)
+
+_STATUS_LABELS = {
+    "pending": "Pendiente",
+    "paid": "Pagado",
+    "processing": "En preparación",
+    "completed": "Entregado",
+    "cancelled": "Cancelado",
+}
+_CHANNEL_LABELS = {"web": "Tienda en línea", "pos": "Punto de venta"}
+
+
+def render_daily_sales_report_pdf(report: dict) -> bytes:
+    """Arma el PDF del reporte diario de ventas.
+
+    `report` es el `dict` que arma `ReportService.build_daily_sales()`: una
+    fila por venta del día (no por línea, para que quepan varias ventas por
+    página) más los totales generales, con el mismo estilo de marca que la
+    factura de la etapa 7.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=16 * mm,
+        bottomMargin=14 * mm,
+        leftMargin=14 * mm,
+        rightMargin=14 * mm,
+        title=f"Reporte diario {report['date'].strftime('%d/%m/%Y')}",
+    )
+
+    story: list = [*_business_header(), Spacer(1, 10)]
+    story.append(Paragraph(f"REPORTE DIARIO DE VENTAS — {report['date'].strftime('%d/%m/%Y')}", _HEADING_STYLE))
+    story.append(Spacer(1, 8))
+
+    rows = [
+        ["Venta", "Hora", "Canal", "Cliente", "Productos y servicios", "Cant.", "Valor", "Total", "Estado"]
+    ]
+    for row in report["rows"]:
+        rows.append(
+            [
+                row["sale_number"],
+                row["sold_at"].strftime("%H:%M"),
+                _CHANNEL_LABELS.get(row["channel"], row["channel"]),
+                Paragraph(row["customer_name"], _TABLE_CELL_STYLE),
+                Paragraph(row["items_summary"], _TABLE_CELL_STYLE),
+                str(row["items_count"]),
+                _money(row["subtotal"]),
+                _money(row["total"]),
+                _STATUS_LABELS.get(row["status"], row["status"]),
+            ]
+        )
+
+    if len(rows) == 1:
+        story.append(Paragraph("No hubo ventas este día.", _BODY_STYLE))
+    else:
+        table = Table(
+            rows,
+            colWidths=[22 * mm, 12 * mm, 20 * mm, 30 * mm, 62 * mm, 12 * mm, 20 * mm, 20 * mm, 22 * mm],
+            repeatRows=1,
+        )
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, 0), 8),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 1), (-1, -1), 7.5),
+                    ("ALIGN", (5, 0), (7, -1), "RIGHT"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#FAFAFA")]),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        story.append(table)
+
+    story.append(Spacer(1, 12))
+
+    totals = report["totals"]
+    totals_rows = [
+        ["Ventas del día", str(totals["sales_count"])],
+        ["Artículos vendidos", str(totals["items_count"])],
+        ["Subtotal", _money(totals["subtotal"])],
+        ["Envíos", _money(totals["shipping_total"])],
+        ["IVA incluido", _money(totals["tax_total"])],
+        ["Total del día", _money(totals["total"])],
+    ]
+    totals_table = Table(totals_rows, colWidths=[45 * mm, 35 * mm], hAlign="RIGHT")
+    totals_table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, -1), (-1, -1), 11),
+                ("TEXTCOLOR", (0, -1), (-1, -1), PRIMARY),
+                ("LINEABOVE", (0, -1), (-1, -1), 0.75, GOLD),
+                ("TOPPADDING", (0, -1), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]
+        )
+    )
+    story.append(totals_table)
+    story.append(Spacer(1, 20))
+    story.append(_generated_footer())
+
+    doc.build(story)
+    return buffer.getvalue()
+

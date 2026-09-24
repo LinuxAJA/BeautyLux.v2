@@ -52,6 +52,22 @@ class SaleRepository(BaseRepository[Sale]):
         )
         return db.execute(stmt).scalars().first()
 
+    def find_all_for_day(self, db: Session, day: date) -> list[Sale]:
+        """Todas las ventas vendidas un día, sin paginar y con cualquier
+        estado: el reporte diario (etapa 8) muestra el día completo, no solo
+        lo que está pagado. Ordenadas por hora de venta, que es como se lee
+        una bitácora del día."""
+        stmt = (
+            select(Sale)
+            .where(
+                Sale.deleted_at.is_(None),
+                Sale.sold_at >= datetime.combine(day, time.min),
+                Sale.sold_at <= datetime.combine(day, time.max),
+            )
+            .order_by(Sale.sold_at.asc())
+        )
+        return list(db.execute(stmt).scalars().all())
+
     def last_number_of_year(self, db: Session, year: int) -> str | None:
         """Mayor `sale_number` emitido en el año, para calcular el siguiente.
 
