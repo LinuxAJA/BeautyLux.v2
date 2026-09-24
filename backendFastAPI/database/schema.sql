@@ -7,8 +7,9 @@
 --   roles      = roles         services = servicios   password_resets = recuperación de contraseña
 --   permissions= permisos      categories = categorías audit_logs     = bitácora de auditoría
 --
--- Quinto avance — modulo de ventas (etapa 4):
---   sales      = ventas        sale_details = detalle de venta
+-- Quinto avance — modulo de ventas (etapa 4) y agenda (etapa 5):
+--   sales      = ventas        sale_details   = detalle de venta
+--   appointments = citas       business_hours = horario de atencion
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS db_beautylux_v2
@@ -19,6 +20,8 @@ USE db_beautylux_v2;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS appointments;
+DROP TABLE IF EXISTS business_hours;
 DROP TABLE IF EXISTS sale_details;
 DROP TABLE IF EXISTS sales;
 DROP TABLE IF EXISTS audit_logs;
@@ -346,4 +349,87 @@ CREATE TABLE sale_details (
     INDEX idx_sale_details_product (product_id),
     INDEX idx_sale_details_service (service_id),
     INDEX idx_sale_details_type (item_type)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- business_hours — horario de atencion del salon, una fila por dia
+--
+-- De aqui salen las franjas que ofrece la disponibilidad: desde `opens_at`
+-- hasta `closes_at`, cada `slot_minutes`, con `capacity` citas simultaneas
+-- (cuantas clientas se pueden atender a la vez). Es configuracion, no
+-- catalogo: se edita en la base y la API la lee para generar los horarios.
+-- ---------------------------------------------------------------------
+CREATE TABLE business_hours (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    -- 1 = lunes ... 7 = domingo, siguiendo ISO-8601 (date.isoweekday()).
+    weekday      TINYINT UNSIGNED NOT NULL,
+    opens_at     TIME NOT NULL,
+    closes_at    TIME NOT NULL,
+    slot_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+    capacity     TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    is_open      TINYINT(1) NOT NULL DEFAULT 1,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_business_hours_weekday UNIQUE (weekday),
+    CONSTRAINT chk_business_hours_weekday CHECK (weekday BETWEEN 1 AND 7),
+    CONSTRAINT chk_business_hours_range CHECK (closes_at > opens_at),
+    CONSTRAINT chk_business_hours_slot CHECK (slot_minutes > 0),
+    CONSTRAINT chk_business_hours_capacity CHECK (capacity > 0)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- appointments — citas de los servicios (quinto avance, etapa 5)
+--
+-- Una cita nace en estado `hold`: una reserva temporal de pocos minutos que
+-- sostiene la franja mientras la clienta termina el checkout. Si no se
+-- confirma, `hold_expires_at` la deja vencer y la limpieza periodica la
+-- descarta, de modo que el cupo vuelve a ofrecerse solo.
+--
+-- `sale_id` y `sale_detail_id` son nulos mientras la cita no pertenezca a una
+-- venta: la agenda tambien se usa desde el panel, para citas registradas a
+-- mano. El especialista que atiende no se modela: lo asigna BeautyLux
+-- internamente.
+-- ---------------------------------------------------------------------
+CREATE TABLE appointments (
+    id                       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    appointment_number       VARCHAR(20) NOT NULL,
+    sale_id                  INT UNSIGNED NULL,
+    sale_detail_id           INT UNSIGNED NULL,
+    user_id                  INT UNSIGNED NULL,
+    service_id               INT UNSIGNED NULL,
+    customer_first_name      VARCHAR(40)  NOT NULL,
+    customer_last_name       VARCHAR(40)  NOT NULL,
+    customer_email           VARCHAR(60)  NULL,
+    customer_phone           VARCHAR(20)  NULL,
+    service_name             VARCHAR(120) NOT NULL,
+    duration_minutes         SMALLINT UNSIGNED NOT NULL,
+    scheduled_date           DATE NOT NULL,
+    start_time               TIME NOT NULL,
+    end_time                 TIME NOT NULL,
+    location                 ENUM('atelier', 'home') NOT NULL DEFAULT 'atelier',
+    status                   ENUM('hold', 'confirmed', 'completed', 'cancelled', 'no_show')
+                             NOT NULL DEFAULT 'hold',
+    hold_expires_at          DATETIME NULL,
+    notes                    VARCHAR(255) NULL,
+    cancelled_at             DATETIME NULL,
+    created_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_appointments_number UNIQUE (appointment_number),
+    CONSTRAINT fk_appointments_sale
+        FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_appointments_sale_detail
+        FOREIGN KEY (sale_detail_id) REFERENCES sale_details (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_appointments_user
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_appointments_service
+        FOREIGN KEY (service_id) REFERENCES services (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT chk_appointments_range CHECK (end_time > start_time),
+    INDEX idx_appointments_user (user_id),
+    INDEX idx_appointments_service (service_id),
+    INDEX idx_appointments_sale (sale_id),
+    INDEX idx_appointments_status (status),
+    -- El indice que sostiene la consulta de disponibilidad: citas activas de
+    -- un dia, ordenadas por hora de inicio.
+    INDEX idx_appointments_agenda (scheduled_date, status, start_time),
+    INDEX idx_appointments_hold_expires (hold_expires_at)
 ) ENGINE = InnoDB;
