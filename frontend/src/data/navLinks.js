@@ -5,6 +5,7 @@ export const mainNavLinks = [
   { label: 'Servicios', to: '/servicios' },
   { label: 'Nosotros', to: '/nosotros' },
   { label: 'Contacto', to: '/contacto' },
+  { label: 'PQR', to: '/pqr' },
 ];
 
 /** Columnas de enlaces del pie de página. */
