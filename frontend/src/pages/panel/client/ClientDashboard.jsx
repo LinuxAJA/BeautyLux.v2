@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Calendar, CheckCircle, CircleAlert, IdCard, MessageCircle, ShieldCheck, ShoppingBag } from 'lucide-react';
+import {
+  Calendar,
+  CalendarCheck,
+  CheckCircle,
+  CircleAlert,
+  IdCard,
+  MessageCircle,
+  Package,
+  ShieldCheck,
+  ShoppingBag,
+} from 'lucide-react';
 
 import StatusBadge from '../../../components/dashboard/StatusBadge';
 import Button from '../../../components/ui/Button';
@@ -140,6 +150,20 @@ function ClientDashboard() {
           >
             <ShoppingBag className="size-4" aria-hidden="true" />
             Explorar catálogo
+          </Link>
+          <Link
+            to="/panel/cliente/pedidos"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 smooth-transition hover:border-primary/40 hover:text-primary"
+          >
+            <Package className="size-4" aria-hidden="true" />
+            Mis pedidos
+          </Link>
+          <Link
+            to="/panel/cliente/citas"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 smooth-transition hover:border-primary/40 hover:text-primary"
+          >
+            <CalendarCheck className="size-4" aria-hidden="true" />
+            Mis citas
           </Link>
           <Link
             to="/contacto"

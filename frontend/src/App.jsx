@@ -9,6 +9,8 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import Services from './pages/Services';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import OrderConfirmation from './pages/OrderConfirmation';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Auth from './pages/Auth';
@@ -29,6 +31,8 @@ import EmployeeProducts from './pages/panel/employee/EmployeeProducts';
 import EmployeeServices from './pages/panel/employee/EmployeeServices';
 import EmployeeAppointments from './pages/panel/employee/EmployeeAppointments';
 import ClientDashboard from './pages/panel/client/ClientDashboard';
+import ClientOrders from './pages/panel/client/ClientOrders';
+import ClientAppointments from './pages/panel/client/ClientAppointments';
 
 function App() {
   return (
@@ -38,6 +42,10 @@ function App() {
         <Route path="productos" element={<Products />} />
         <Route path="servicios" element={<Services />} />
         <Route path="bolsa" element={<Cart />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="checkout" element={<Checkout />} />
+          <Route path="pedido/:saleNumber" element={<OrderConfirmation />} />
+        </Route>
         <Route path="nosotros" element={<About />} />
         <Route path="contacto" element={<Contact />} />
         <Route path="*" element={<NotFound />} />
@@ -71,6 +79,8 @@ function App() {
 
           <Route element={<RoleRoute allow={['client']} />}>
             <Route path="panel/cliente" element={<ClientDashboard />} />
+            <Route path="panel/cliente/pedidos" element={<ClientOrders />} />
+            <Route path="panel/cliente/citas" element={<ClientAppointments />} />
           </Route>
         </Route>
       </Route>

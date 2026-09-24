@@ -1956,6 +1956,174 @@
           }
         },
         {
+          "name": "POST /appointments/hold (reserva para el checkout, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('checkoutHoldId', pm.response.json().data.id);",
+                  "pm.test('queda reservada', () => pm.expect(pm.response.json().data.status).to.eql('hold'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/hold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "hold"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"{{slotStart}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (la venta confirma la cita reservada, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('checkoutSaleId', pm.response.json().data.id);",
+                  "pm.test('la venta incluye el servicio', () => pm.expect(pm.response.json().data.details.some((d) => d.itemType === 'service')).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    },\n    {\n      \"itemType\": \"service\",\n      \"itemId\": 2,\n      \"quantity\": 1\n    }\n  ],\n  \"shipping\": {\n    \"method\": \"standard\",\n    \"city\": \"Medellín\"\n  },\n  \"paymentMethod\": \"card\",\n  \"appointmentHoldIds\": [\n    \"{{checkoutHoldId}}\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /appointments (la cita quedo ligada a la venta, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const citas = pm.response.json().data;",
+                  "pm.test('devuelve la cita de esa venta', () => pm.expect(citas).to.have.lengthOf(1));",
+                  "pm.test('quedo confirmada por el checkout', () => pm.expect(citas[0].status).to.eql('confirmed'));",
+                  "pm.test('cuelga de la linea del servicio', () => pm.expect(citas[0].saleDetailId).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?saleId={{checkoutSaleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "saleId",
+                  "value": "{{checkoutSaleId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /sales (reserva de cita inexistente, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 porque la reserva no existe', () => pm.response.to.have.status(400));",
+                  "pm.test('lo explica en espanol', () => pm.expect(pm.response.json().message).to.include('reserva'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"service\",\n      \"itemId\": 2,\n      \"quantity\": 1\n    }\n  ],\n  \"appointmentHoldIds\": [\n    999999\n  ]\n}"
+            }
+          }
+        },
+        {
           "name": "GET /appointments/:id (cita inexistente, 404)",
           "event": [
             {
