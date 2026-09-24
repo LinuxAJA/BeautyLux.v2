@@ -8,6 +8,7 @@ import {
   LogOut,
   Package,
   ScrollText,
+  ShoppingCart,
   User,
   Users,
   Wrench,
@@ -27,6 +28,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/admin/servicios', label: 'Servicios', icon: Wrench },
     { to: '/panel/admin/categorias', label: 'Categorías', icon: ListTree },
     { to: '/panel/admin/citas', label: 'Citas', icon: CalendarDays },
+    { to: '/panel/admin/pos', label: 'Punto de venta', icon: ShoppingCart },
     { to: '/panel/admin/facturas', label: 'Facturación', icon: Receipt },
     { to: '/panel/admin/reportes', label: 'Reportes', icon: BarChart3 },
     { to: '/panel/admin/bitacora', label: 'Bitácora', icon: ScrollText },
@@ -37,6 +39,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/empleado/productos', label: 'Productos', icon: Package },
     { to: '/panel/empleado/servicios', label: 'Servicios', icon: Wrench },
     { to: '/panel/empleado/citas', label: 'Citas', icon: CalendarDays },
+    { to: '/panel/empleado/pos', label: 'Punto de venta', icon: ShoppingCart },
     { to: '/panel/empleado/facturas', label: 'Facturación', icon: Receipt },
   ],
   client: [

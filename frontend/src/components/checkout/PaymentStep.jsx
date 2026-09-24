@@ -11,14 +11,20 @@ const ICONS = { card: CreditCard, pse: Landmark, nequi: Smartphone, cash: Bankno
  * No hay pasarela integrada y **no se piden datos de tarjeta**: la compra solo
  * registra qué método eligió el cliente, tal como se acordó en el plan. El
  * cobro real queda fuera del alcance del avance.
+ *
+ * `inPerson` lo usa el punto de venta (etapa 9): el cobro ocurre en el
+ * mostrador, no "contra entrega" de un pedido que llega después, así que el
+ * texto cambia para no hablar de coordinar el pago o de una entrega futura.
  */
-function PaymentStep({ value, onChange }) {
+function PaymentStep({ value, onChange, inPerson = false }) {
   return (
     <div className="space-y-5">
       <div>
         <h2 className="font-serif text-xl font-semibold">Pago</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Elige cómo quieres pagar. Confirmamos el pedido y coordinamos el cobro contigo.
+          {inPerson
+            ? 'Elige cómo paga la persona en el mostrador.'
+            : 'Elige cómo quieres pagar. Confirmamos el pedido y coordinamos el cobro contigo.'}
         </p>
       </div>
 
@@ -50,9 +56,11 @@ function PaymentStep({ value, onChange }) {
               <Icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
 
               <span className="flex-1">
-                <span className="block font-medium">{method.label}</span>
+                <span className="block font-medium">
+                  {inPerson && method.value === 'cash' ? 'Efectivo' : method.label}
+                </span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {method.description}
+                  {inPerson && method.value === 'cash' ? 'Recibes el efectivo en el momento.' : method.description}
                 </span>
               </span>
             </label>
