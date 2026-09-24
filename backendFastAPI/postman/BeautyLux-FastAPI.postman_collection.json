@@ -550,6 +550,749 @@
           }
         }
       ]
+    },
+    {
+      "name": "7. Ventas",
+      "item": [
+        {
+          "name": "POST /sales (cliente compra producto y servicio, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const venta = pm.response.json().data;",
+                  "pm.environment.set('saleId', venta.id);",
+                  "pm.environment.set('saleNumber', venta.saleNumber);",
+                  "pm.test('asigna el consecutivo VTA-AAAA-NNNNN', () => pm.expect(venta.saleNumber).to.match(/^VTA-[0-9]{4}-[0-9]{5}$/));",
+                  "pm.test('nace pendiente y por el canal web', () => { pm.expect(venta.status).to.eql('pending'); pm.expect(venta.channel).to.eql('web'); });",
+                  "pm.test('el servidor calcula el subtotal', () => pm.expect(venta.subtotal).to.eql(247800));",
+                  "pm.test('cobra el envio porque los productos no llegan a 150000', () => pm.expect(venta.shippingCost).to.eql(12000));",
+                  "pm.test('el total suma el envio al subtotal', () => pm.expect(venta.total).to.eql(venta.subtotal + venta.shippingCost));",
+                  "pm.test('desglosa el IVA que va incluido en el precio', () => pm.expect(venta.taxTotal).to.be.above(0));",
+                  "pm.test('devuelve las dos lineas del detalle', () => pm.expect(venta.details).to.have.lengthOf(2));",
+                  "pm.test('la linea de servicio conserva su duracion', () => { const linea = venta.details.find((d) => d.itemType === 'service'); pm.expect(linea.durationMinutes).to.be.above(0); });",
+                  "pm.test('la linea de producto conserva el SKU', () => { const linea = venta.details.find((d) => d.itemType === 'product'); pm.expect(linea.itemSku).to.be.a('string'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 2\n    },\n    {\n      \"itemType\": \"service\",\n      \"itemId\": 2,\n      \"quantity\": 1\n    }\n  ],\n  \"shipping\": {\n    \"method\": \"standard\",\n    \"city\": \"Medellín\"\n  },\n  \"paymentMethod\": \"card\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (los precios del body se ignoran, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const venta = pm.response.json().data;",
+                  "pm.test('el total no es el que mando el cliente', () => pm.expect(venta.total).to.be.above(1));",
+                  "pm.test('el precio unitario sale del catalogo', () => pm.expect(venta.details[0].unitPrice).to.be.above(1));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    }\n  ],\n  \"price\": 1,\n  \"total\": 1,\n  \"paymentMethod\": \"nequi\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (servicio con cantidad 2, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 por regla de negocio', () => pm.response.to.have.status(400));",
+                  "pm.test('explica que la cita se reserva de a una', () => pm.expect(pm.response.json().message).to.include('una vez'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"service\",\n      \"itemId\": 2,\n      \"quantity\": 2\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (venta sin articulos, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('responde con mensaje en espanol', () => pm.expect(pm.response.json().message).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (producto inexistente, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 porque el articulo no esta disponible', () => pm.response.to.have.status(400));",
+                  "pm.test('nombra el articulo que falla', () => pm.expect(pm.response.json().message).to.include('999999'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 999999,\n      \"quantity\": 1\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (sin autenticar, 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin sesion', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (venta de mostrador a consumidor final, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const venta = pm.response.json().data;",
+                  "pm.environment.set('posSaleId', venta.id);",
+                  "pm.test('queda registrada en el canal presencial', () => pm.expect(venta.channel).to.eql('pos'));",
+                  "pm.test('anota quien atendio', () => pm.expect(venta.staffId).to.be.a('number'));",
+                  "pm.test('no la asocia a ninguna cuenta', () => pm.expect(venta.userId).to.eql(null));",
+                  "pm.test('recoger en tienda no paga envio', () => pm.expect(venta.shippingCost).to.eql(0));",
+                  "pm.test('conserva el nombre escrito a mano', () => pm.expect(venta.customer.firstName).to.eql('Marta'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 3,\n      \"quantity\": 1\n    }\n  ],\n  \"channel\": \"pos\",\n  \"customer\": {\n    \"firstName\": \"Marta\",\n    \"lastName\": \"Gomez\",\n    \"phone\": \"3111111111\"\n  },\n  \"shipping\": {\n    \"method\": \"pickup\"\n  },\n  \"paymentMethod\": \"cash\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /sales (el cliente no puede vender por el canal POS, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido', () => pm.response.to.have.status(403));",
+                  "pm.test('lo explica en espanol', () => pm.expect(pm.response.json().message).to.include('nombre de otra persona'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    }\n  ],\n  \"channel\": \"pos\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /sales/:id (el cliente no ve la venta de otro, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404: no se confirma que exista', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{posSaleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "{{posSaleId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /sales/:id/status (el cliente no cambia estados, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{saleId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "{{saleId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /sales (historial paginado, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('envuelve data y meta', () => { pm.expect(body.data).to.be.an('array'); pm.expect(body.meta).to.have.property('total'); });",
+                  "pm.test('incluye la venta recien creada', () => pm.expect(body.data.map((v) => v.id)).to.include(Number(pm.environment.get('saleId'))));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales?page=1&perPage=10&orderBy=soldAt&orderDir=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                },
+                {
+                  "key": "orderBy",
+                  "value": "soldAt"
+                },
+                {
+                  "key": "orderDir",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /sales (filtro por estado, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('todas las devueltas estan pendientes', () => pm.response.json().data.forEach((v) => pm.expect(v.status).to.eql('pending')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales?status=pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /sales (filtro por servicio vendido, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve al menos la venta del servicio', () => pm.expect(pm.response.json().meta.total).to.be.above(0));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales?serviceId=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /sales/:id (venta con su detalle, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const venta = pm.response.json().data;",
+                  "pm.test('trae las lineas', () => pm.expect(venta.details).to.be.an('array').that.is.not.empty);",
+                  "pm.test('trae el snapshot del comprador', () => pm.expect(venta.customer.firstName).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{saleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "{{saleId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /sales/number/:saleNumber (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve la misma venta', () => pm.expect(pm.response.json().data.saleNumber).to.eql(pm.environment.get('saleNumber')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/number/{{saleNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "number",
+                "{{saleNumber}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /sales/:id (venta inexistente, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 no encontrada', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /sales/:id/status (admin la marca pagada, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('queda pagada', () => pm.expect(pm.response.json().data.status).to.eql('paid'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{saleId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "{{saleId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /sales/:id/status (estado invalido, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('enumera los estados validos', () => pm.expect(pm.response.json().message).to.include('pending'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales/{{saleId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales",
+                "{{saleId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"entregada\"\n}"
+            }
+          }
+        }
+      ]
     }
   ]
 }

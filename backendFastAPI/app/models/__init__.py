@@ -11,6 +11,8 @@ from app.models.password_reset import PasswordReset
 from app.models.permission import Permission, role_permissions
 from app.models.product import Product
 from app.models.role import Role
+from app.models.sale import Sale
+from app.models.sale_detail import SaleDetail
 from app.models.service import Service
 from app.models.session import Session
 from app.models.user import User
@@ -24,6 +26,8 @@ __all__ = [
     "role_permissions",
     "Product",
     "Role",
+    "Sale",
+    "SaleDetail",
     "Service",
     "Session",
     "User",
