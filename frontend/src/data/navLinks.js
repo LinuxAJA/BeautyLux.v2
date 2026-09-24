@@ -5,6 +5,7 @@ export const mainNavLinks = [
   { label: 'Servicios', to: '/servicios' },
   { label: 'Nosotros', to: '/nosotros' },
   { label: 'Contacto', to: '/contacto' },
+  { label: 'PQR', to: '/pqr' },
 ];
 
 /** Columnas de enlaces del pie de página. */
@@ -32,6 +33,7 @@ export const footerColumns = [
     links: [
       { label: '¿Quiénes somos?', to: '/nosotros' },
       { label: 'Contacto', to: '/contacto' },
+      { label: 'PQR', to: '/pqr' },
       { label: 'Iniciar sesión', to: '/login' },
       { label: 'Crear cuenta', to: '/login' },
     ],

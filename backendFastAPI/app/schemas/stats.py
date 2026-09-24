@@ -13,13 +13,7 @@ from app.schemas.common import CamelModel
 
 
 class OverviewOut(CamelModel):
-    """Requisito 10: totales del negocio para el resumen del admin.
-
-    `pqr_received` y `pqr_pending` quedan en 0 hasta que exista el módulo de
-    PQR (etapa 11 del plan): la tabla `pqr` todavía no existe, así que no hay
-    nada que contar todavía, pero el campo ya vive aquí para no tener que
-    tocar el contrato del frontend cuando se construya.
-    """
+    """Requisito 10: totales del negocio para el resumen del admin."""
 
     users_count: int
     clients_count: int

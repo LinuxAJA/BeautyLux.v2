@@ -48,6 +48,9 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('appointments.update', 'appointments', 'update', 'Reprogramar o cancelar citas'),
     ('invoices.read',       'invoices',    'read',   'Consultar facturas'),
     ('invoices.create',     'invoices',    'create', 'Emitir facturas'),
+    ('pqr.read',            'pqr',         'read',   'Consultar PQR'),
+    ('pqr.create',          'pqr',         'create', 'Radicar PQR'),
+    ('pqr.respond',         'pqr',         'respond','Responder y cambiar el estado de una PQR'),
     ('profile.read',      'profile',     'read',   'Consultar el propio perfil'),
     ('profile.update',    'profile',     'update', 'Editar el propio perfil');
 
@@ -68,6 +71,7 @@ WHERE r.name = 'employee' AND p.code IN (
     'sales.read', 'sales.create', 'sales.update', 'sales.status',
     'appointments.read', 'appointments.create', 'appointments.update',
     'invoices.read', 'invoices.create',
+    'pqr.read', 'pqr.create', 'pqr.respond',
     'profile.read', 'profile.update'
 );
 
@@ -82,6 +86,9 @@ WHERE r.name = 'client' AND p.code IN (
     -- El cliente solo consulta y descarga sus propias facturas, nunca las
     -- emite: eso es tarea del personal cuando marca la venta como pagada.
     'invoices.read',
+    -- El cliente radica y ve sus propias PQR, nunca las responde: eso es
+    -- tarea del personal.
+    'pqr.read', 'pqr.create',
     'profile.read', 'profile.update'
 );
 

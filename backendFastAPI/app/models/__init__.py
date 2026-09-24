@@ -13,6 +13,7 @@ from app.models.invoice import Invoice
 from app.models.invoice_detail import InvoiceDetail
 from app.models.password_reset import PasswordReset
 from app.models.permission import Permission, role_permissions
+from app.models.pqr import Pqr
 from app.models.product import Product
 from app.models.role import Role
 from app.models.sale import Sale
@@ -31,6 +32,7 @@ __all__ = [
     "InvoiceDetail",
     "PasswordReset",
     "Permission",
+    "Pqr",
     "role_permissions",
     "Product",
     "Role",

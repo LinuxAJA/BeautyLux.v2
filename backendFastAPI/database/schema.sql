@@ -7,11 +7,12 @@
 --   roles      = roles         services = servicios   password_resets = recuperación de contraseña
 --   permissions= permisos      categories = categorías audit_logs     = bitácora de auditoría
 --
--- Quinto avance — modulo de ventas (etapa 4), agenda (etapa 5) y
--- facturacion (etapa 7):
+-- Quinto avance — modulo de ventas (etapa 4), agenda (etapa 5),
+-- facturacion (etapa 7) y PQR (etapa 11):
 --   sales      = ventas        sale_details   = detalle de venta
 --   appointments = citas       business_hours = horario de atencion
 --   invoices   = facturas      invoice_details = detalle de factura
+--   pqr        = peticiones, quejas, reclamos y sugerencias
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS db_beautylux_v2
@@ -22,6 +23,7 @@ USE db_beautylux_v2;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS pqr;
 DROP TABLE IF EXISTS invoice_details;
 DROP TABLE IF EXISTS invoices;
 DROP TABLE IF EXISTS appointments;
@@ -505,4 +507,51 @@ CREATE TABLE invoice_details (
     CONSTRAINT chk_invoice_details_quantity CHECK (quantity > 0),
     CONSTRAINT chk_invoice_details_amounts CHECK (unit_price >= 0 AND discount >= 0 AND subtotal >= 0),
     INDEX idx_invoice_details_invoice (invoice_id)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- pqr — peticiones, quejas, reclamos y sugerencias (quinto avance,
+-- requisito 16)
+--
+-- `user_id` es opcional: la radicación es pública (no exige sesión), así que
+-- una visitante sin cuenta también puede quejarse. Cuando hay sesión, se
+-- guarda igual el snapshot de contacto (`contact_*`) para que el ticket no
+-- dependa de que la cuenta siga existiendo ni de que sus datos no cambien
+-- después — el mismo criterio que `sales.customer_*`.
+--
+-- La consulta pública de estado (`GET /api/pqr/{ticketNumber}`) exige el
+-- número de ticket *y* el correo de contacto: sin la sesión de por medio, es
+-- lo único que evita que cualquiera lea la PQR de otra persona adivinando
+-- el consecutivo.
+-- ---------------------------------------------------------------------
+CREATE TABLE pqr (
+    id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ticket_number       VARCHAR(20)  NOT NULL,
+    user_id             INT UNSIGNED NULL,
+    sale_id             INT UNSIGNED NULL,
+    type                ENUM('peticion', 'queja', 'reclamo', 'sugerencia') NOT NULL,
+    subject             VARCHAR(160) NOT NULL,
+    message             TEXT NOT NULL,
+    contact_first_name  VARCHAR(40)  NOT NULL,
+    contact_last_name   VARCHAR(40)  NOT NULL,
+    contact_email       VARCHAR(60)  NOT NULL,
+    contact_phone       VARCHAR(20)  NULL,
+    status              ENUM('pending', 'in_progress', 'answered', 'closed')
+                        NOT NULL DEFAULT 'pending',
+    response            TEXT NULL,
+    responded_by        INT UNSIGNED NULL,
+    responded_at        DATETIME NULL,
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_pqr_ticket_number UNIQUE (ticket_number),
+    CONSTRAINT fk_pqr_user
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_pqr_sale
+        FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_pqr_responded_by
+        FOREIGN KEY (responded_by) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX idx_pqr_user (user_id),
+    INDEX idx_pqr_status (status),
+    INDEX idx_pqr_type (type),
+    INDEX idx_pqr_created_at (created_at)
 ) ENGINE = InnoDB;
