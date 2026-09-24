@@ -26,6 +26,7 @@ import AdminCategories from './pages/panel/admin/AdminCategories';
 import AdminAuditLog from './pages/panel/admin/AdminAuditLog';
 import AdminAppointments from './pages/panel/admin/AdminAppointments';
 import AdminInvoices from './pages/panel/admin/AdminInvoices';
+import AdminReports from './pages/panel/admin/AdminReports';
 import EmployeeOverview from './pages/panel/employee/EmployeeOverview';
 import EmployeeClients from './pages/panel/employee/EmployeeClients';
 import EmployeeProducts from './pages/panel/employee/EmployeeProducts';
@@ -69,6 +70,7 @@ function App() {
             <Route path="panel/admin/categorias" element={<AdminCategories />} />
             <Route path="panel/admin/citas" element={<AdminAppointments />} />
             <Route path="panel/admin/facturas" element={<AdminInvoices />} />
+            <Route path="panel/admin/reportes" element={<AdminReports />} />
             <Route path="panel/admin/bitacora" element={<AdminAuditLog />} />
           </Route>
 

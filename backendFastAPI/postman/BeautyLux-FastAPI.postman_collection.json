@@ -2579,6 +2579,423 @@
           }
         }
       ]
+    },
+    {
+      "name": "10. Reportes",
+      "item": [
+        {
+          "name": "Iniciar sesión como empleado (script)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('employeeAccessToken', pm.response.json().data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"empleado@beautylux.com\",\n  \"password\": \"Empleado123*\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /sales (venta para el reporte del día, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const venta = pm.response.json().data;",
+                  "pm.environment.set('reportDate', venta.soldAt.slice(0, 10));",
+                  "pm.environment.set('reportSaleNumber', venta.saleNumber);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    }\n  ],\n  \"shipping\": {\n    \"method\": \"pickup\"\n  },\n  \"paymentMethod\": \"card\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (JSON, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const reporte = pm.response.json().data;",
+                  "pm.test('trae la fecha pedida', () => pm.expect(reporte.date).to.eql(pm.environment.get('reportDate')));",
+                  "pm.test('incluye la venta recien creada', () => pm.expect(reporte.rows.map((r) => r.saleNumber)).to.include(pm.environment.get('reportSaleNumber')));",
+                  "pm.test('cada fila trae lo que pide el requisito', () => { const fila = reporte.rows[0]; pm.expect(fila).to.include.keys('saleNumber', 'soldAt', 'customerName', 'itemsSummary', 'itemsCount', 'subtotal', 'total', 'status'); });",
+                  "pm.test('trae totales generales', () => pm.expect(reporte.totals).to.include.keys('salesCount', 'itemsCount', 'subtotal', 'total'));",
+                  "pm.test('trae el pie de generacion', () => pm.expect(reporte.generatedAt).to.be.a('string'));",
+                  "pm.test('hay al menos una venta ese dia', () => pm.expect(reporte.rows.length).to.be.above(0));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date={{reportDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{reportDate}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (dia sin ventas, 200 con ceros)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const reporte = pm.response.json().data;",
+                  "pm.test('sin filas', () => pm.expect(reporte.rows).to.have.lengthOf(0));",
+                  "pm.test('totales en cero', () => pm.expect(reporte.totals.salesCount).to.eql(0));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date=2020-01-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2020-01-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (fecha invalida, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date=no-es-una-fecha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "no-es-una-fecha"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (PDF, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('el tipo de contenido es PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));",
+                  "pm.test('adjunta un nombre de archivo', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('.pdf'));",
+                  "pm.test('el archivo no esta vacio', () => pm.expect(pm.response.responseSize).to.be.above(500));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date={{reportDate}}&format=pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{reportDate}}"
+                },
+                {
+                  "key": "format",
+                  "value": "pdf"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (Excel, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('el tipo de contenido es xlsx', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('spreadsheetml'));",
+                  "pm.test('adjunta un nombre de archivo', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('.xlsx'));",
+                  "pm.test('el archivo no esta vacio', () => pm.expect(pm.response.responseSize).to.be.above(500));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date={{reportDate}}&format=xlsx",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{reportDate}}"
+                },
+                {
+                  "key": "format",
+                  "value": "xlsx"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (el empleado no tiene acceso, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido: el reporte es exclusivo de admin', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date={{reportDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{reportDate}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (el cliente no tiene acceso, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date={{reportDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{reportDate}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/daily-sales (sin autenticar, 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin sesion', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily-sales?date={{reportDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "daily-sales"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{reportDate}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
