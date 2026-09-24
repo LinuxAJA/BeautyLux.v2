@@ -4,7 +4,9 @@ declaradas por nombre de cadena (p. ej. `relationship("Category")`) y para
 que `Base.metadata` los conozca a todos.
 """
 
+from app.models.appointment import Appointment
 from app.models.audit_log import AuditLog
+from app.models.business_hours import BusinessHours
 from app.models.category import Category
 from app.models.document_type import DocumentType
 from app.models.password_reset import PasswordReset
@@ -18,7 +20,9 @@ from app.models.session import Session
 from app.models.user import User
 
 __all__ = [
+    "Appointment",
     "AuditLog",
+    "BusinessHours",
     "Category",
     "DocumentType",
     "PasswordReset",

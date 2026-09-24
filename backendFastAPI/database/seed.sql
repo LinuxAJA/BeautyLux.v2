@@ -43,6 +43,9 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('sales.create',      'sales',       'create', 'Registrar ventas'),
     ('sales.update',      'sales',       'update', 'Editar ventas'),
     ('sales.status',      'sales',       'status', 'Cambiar el estado de una venta'),
+    ('appointments.read',   'appointments', 'read',   'Consultar citas'),
+    ('appointments.create', 'appointments', 'create', 'Agendar citas'),
+    ('appointments.update', 'appointments', 'update', 'Reprogramar o cancelar citas'),
     ('profile.read',      'profile',     'read',   'Consultar el propio perfil'),
     ('profile.update',    'profile',     'update', 'Editar el propio perfil');
 
@@ -61,6 +64,7 @@ WHERE r.name = 'employee' AND p.code IN (
     'services.read', 'services.create', 'services.update',
     'categories.read',
     'sales.read', 'sales.create', 'sales.update', 'sales.status',
+    'appointments.read', 'appointments.create', 'appointments.update',
     'profile.read', 'profile.update'
 );
 
@@ -71,6 +75,7 @@ WHERE r.name = 'client' AND p.code IN (
     -- El cliente compra y consulta, pero solo sus propias ventas: el filtro
     -- por user_id lo aplica SaleService, no la matriz de permisos.
     'sales.read', 'sales.create',
+    'appointments.read', 'appointments.create', 'appointments.update',
     'profile.read', 'profile.update'
 );
 
@@ -183,3 +188,18 @@ SELECT 'maquillaje-social', 'Maquillaje Social', 'Maquillaje profesional para ev
 
 INSERT INTO services (slug, name, description, category_id, price, duration_minutes, image_url, status)
 SELECT 'diseno-de-cejas', 'Diseño de Cejas', 'Perfilado, depilación y tinte de cejas.', c.id, 35000, 30, '/images/labial-mate.jpg', 'active' FROM categories c WHERE c.slug = 'servicios-maquillaje';
+
+-- ---------------------------------------------------------------------
+-- business_hours — horario de atencion del salon
+--
+-- Lunes a viernes de 9:00 a 19:00, sabado de 9:00 a 17:00 y domingo cerrado.
+-- Franjas de 30 minutos y dos clientas en simultaneo (dos puestos de trabajo).
+-- ---------------------------------------------------------------------
+INSERT INTO business_hours (weekday, opens_at, closes_at, slot_minutes, capacity, is_open) VALUES
+    (1, '09:00:00', '19:00:00', 30, 2, 1),
+    (2, '09:00:00', '19:00:00', 30, 2, 1),
+    (3, '09:00:00', '19:00:00', 30, 2, 1),
+    (4, '09:00:00', '19:00:00', 30, 2, 1),
+    (5, '09:00:00', '19:00:00', 30, 2, 1),
+    (6, '09:00:00', '17:00:00', 30, 2, 1),
+    (7, '09:00:00', '13:00:00', 30, 1, 0);

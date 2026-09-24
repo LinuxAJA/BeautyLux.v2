@@ -22,10 +22,12 @@ import AdminProducts from './pages/panel/admin/AdminProducts';
 import AdminServices from './pages/panel/admin/AdminServices';
 import AdminCategories from './pages/panel/admin/AdminCategories';
 import AdminAuditLog from './pages/panel/admin/AdminAuditLog';
+import AdminAppointments from './pages/panel/admin/AdminAppointments';
 import EmployeeOverview from './pages/panel/employee/EmployeeOverview';
 import EmployeeClients from './pages/panel/employee/EmployeeClients';
 import EmployeeProducts from './pages/panel/employee/EmployeeProducts';
 import EmployeeServices from './pages/panel/employee/EmployeeServices';
+import EmployeeAppointments from './pages/panel/employee/EmployeeAppointments';
 import ClientDashboard from './pages/panel/client/ClientDashboard';
 
 function App() {
@@ -55,6 +57,7 @@ function App() {
             <Route path="panel/admin/productos" element={<AdminProducts />} />
             <Route path="panel/admin/servicios" element={<AdminServices />} />
             <Route path="panel/admin/categorias" element={<AdminCategories />} />
+            <Route path="panel/admin/citas" element={<AdminAppointments />} />
             <Route path="panel/admin/bitacora" element={<AdminAuditLog />} />
           </Route>
 
@@ -63,6 +66,7 @@ function App() {
             <Route path="panel/empleado/clientes" element={<EmployeeClients />} />
             <Route path="panel/empleado/productos" element={<EmployeeProducts />} />
             <Route path="panel/empleado/servicios" element={<EmployeeServices />} />
+            <Route path="panel/empleado/citas" element={<EmployeeAppointments />} />
           </Route>
 
           <Route element={<RoleRoute allow={['client']} />}>

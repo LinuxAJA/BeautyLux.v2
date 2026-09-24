@@ -1293,6 +1293,702 @@
           }
         }
       ]
+    },
+    {
+      "name": "8. Citas",
+      "item": [
+        {
+          "name": "Preparar la fecha de prueba (script)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Busca el proximo dia entre lunes y sabado: el salon cierra los domingos.",
+                  "const fecha = new Date();",
+                  "fecha.setDate(fecha.getDate() + 1);",
+                  "while (fecha.getDay() === 0) { fecha.setDate(fecha.getDate() + 1); }",
+                  "const iso = fecha.toISOString().slice(0, 10);",
+                  "pm.environment.set('bookingDate', iso);",
+                  "console.log('Fecha de prueba para la agenda:', iso);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('guarda la fecha de prueba', () => pm.expect(pm.environment.get('bookingDate')).to.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /appointments/availability (publico, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const disponibilidad = pm.response.json().data;",
+                  "pm.test('dice si el salon abre ese dia', () => pm.expect(disponibilidad.isOpen).to.be.a('boolean'));",
+                  "pm.test('devuelve franjas', () => pm.expect(disponibilidad.slots).to.be.an('array').that.is.not.empty);",
+                  "pm.test('cada franja trae inicio, fin y cupo', () => { const franja = disponibilidad.slots[0]; pm.expect(franja.startTime).to.match(/^[0-9]{2}:[0-9]{2}$/); pm.expect(franja.endTime).to.match(/^[0-9]{2}:[0-9]{2}$/); pm.expect(franja.remaining).to.be.a('number'); });",
+                  "pm.test('la franja dura lo que dura el servicio', () => pm.expect(disponibilidad.durationMinutes).to.be.above(0));",
+                  "const libre = disponibilidad.slots.find((s) => s.available);",
+                  "if (libre) { pm.environment.set('slotStart', libre.startTime); }",
+                  "pm.test('queda al menos un horario libre', () => pm.expect(libre, 'sin horarios libres ese dia').to.not.be.undefined);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/availability?date={{bookingDate}}&serviceId=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{bookingDate}}"
+                },
+                {
+                  "key": "serviceId",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /appointments/availability (servicio inexistente, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 servicio inexistente', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/availability?date={{bookingDate}}&serviceId=999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{bookingDate}}"
+                },
+                {
+                  "key": "serviceId",
+                  "value": "999999"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /appointments/hold (reserva temporal, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const cita = pm.response.json().data;",
+                  "pm.environment.set('holdId', cita.id);",
+                  "pm.test('asigna el consecutivo CIT-AAAA-NNNNN', () => pm.expect(cita.appointmentNumber).to.match(/^CIT-[0-9]{4}-[0-9]{5}$/));",
+                  "pm.test('nace como reserva temporal', () => pm.expect(cita.status).to.eql('hold'));",
+                  "pm.test('la reserva tiene vencimiento', () => pm.expect(cita.holdExpiresAt).to.be.a('string'));",
+                  "pm.test('calcula la hora de fin con la duracion del servicio', () => pm.expect(cita.endTime).to.not.eql(cita.startTime));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/hold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "hold"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"{{slotStart}}\",\n  \"location\": \"atelier\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /appointments (confirma la reserva, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const cita = pm.response.json().data;",
+                  "pm.environment.set('appointmentId', cita.id);",
+                  "pm.environment.set('appointmentNumber', cita.appointmentNumber);",
+                  "pm.test('queda confirmada', () => pm.expect(cita.status).to.eql('confirmed'));",
+                  "pm.test('deja de tener vencimiento', () => pm.expect(cita.holdExpiresAt).to.eql(null));",
+                  "pm.test('conserva el numero de la reserva', () => pm.expect(cita.id).to.eql(Number(pm.environment.get('holdId'))));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"{{slotStart}}\",\n  \"holdId\": \"{{holdId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /appointments (fecha pasada, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('lo explica en espanol', () => pm.expect(pm.response.json().message).to.include('pasada'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"2020-01-01\",\n  \"startTime\": \"10:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /appointments (hora a mitad de franja, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('indica cada cuanto empiezan las citas', () => pm.expect(pm.response.json().message).to.include('minutos'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"10:07\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /appointments (fuera del horario de atencion, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('nombra el horario del dia', () => pm.expect(pm.response.json().message).to.include('atención'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"23:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /appointments/hold (sin autenticar, 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin sesion', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/hold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "hold"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": 2,\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"{{slotStart}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /appointments (agenda del personal, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('envuelve data y meta', () => { pm.expect(body.data).to.be.an('array'); pm.expect(body.meta).to.have.property('total'); });",
+                  "pm.test('el personal no ve reservas temporales', () => body.data.forEach((c) => pm.expect(c.status).to.not.eql('hold')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?dateFrom={{bookingDate}}&dateTo={{bookingDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "dateFrom",
+                  "value": "{{bookingDate}}"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "{{bookingDate}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /appointments (el cliente ve solo las suyas, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('incluye la cita recien confirmada', () => pm.expect(pm.response.json().data.map((c) => c.id)).to.include(Number(pm.environment.get('appointmentId'))));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /appointments/:id (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve la misma cita', () => pm.expect(pm.response.json().data.appointmentNumber).to.eql(pm.environment.get('appointmentNumber')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /appointments/:id/reschedule (conserva el numero, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const cita = pm.response.json().data;",
+                  "pm.test('sigue siendo la misma cita', () => pm.expect(cita.appointmentNumber).to.eql(pm.environment.get('appointmentNumber')));",
+                  "pm.test('queda confirmada', () => pm.expect(cita.status).to.eql('confirmed'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/reschedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{appointmentId}}",
+                "reschedule"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledDate\": \"{{bookingDate}}\",\n  \"startTime\": \"{{slotStart}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /appointments/:id/status (el personal la marca atendida, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('queda atendida', () => pm.expect(pm.response.json().data.status).to.eql('completed'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{appointmentId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /appointments/:id/status (estado invalido, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('enumera los estados validos', () => pm.expect(pm.response.json().message).to.include('confirmed'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{appointmentId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"reagendada\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /appointments/:id/cancel (una cita cerrada no se cancela, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 porque ya esta cerrada', () => pm.response.to.have.status(400));",
+                  "pm.test('lo explica en espanol', () => pm.expect(pm.response.json().message).to.include('cerrada'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{appointmentId}}",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /appointments/:id (cita inexistente, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 no encontrada', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "999999"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

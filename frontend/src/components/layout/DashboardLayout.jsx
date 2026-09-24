@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import {
+  CalendarDays,
   LayoutDashboard,
   ListTree,
   LogOut,
@@ -23,6 +24,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/admin/productos', label: 'Productos', icon: Package },
     { to: '/panel/admin/servicios', label: 'Servicios', icon: Wrench },
     { to: '/panel/admin/categorias', label: 'Categorías', icon: ListTree },
+    { to: '/panel/admin/citas', label: 'Citas', icon: CalendarDays },
     { to: '/panel/admin/bitacora', label: 'Bitácora', icon: ScrollText },
   ],
   employee: [
@@ -30,6 +32,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/empleado/clientes', label: 'Clientes', icon: Users },
     { to: '/panel/empleado/productos', label: 'Productos', icon: Package },
     { to: '/panel/empleado/servicios', label: 'Servicios', icon: Wrench },
+    { to: '/panel/empleado/citas', label: 'Citas', icon: CalendarDays },
   ],
   client: [{ to: '/panel/cliente', label: 'Mi perfil', icon: User, end: true }],
 };
