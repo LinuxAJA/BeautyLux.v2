@@ -2,6 +2,10 @@
 
 No tiene equivalente en el backend Node: los dashboards analíticos nacen con
 el quinto avance.
+
+Los contadores de PQR se calcularon en 0 hasta la etapa 11 (la tabla `pqr`
+todavía no existía); ahora que el módulo está construido, se reemplazan por
+consultas reales sin tocar el contrato de los tres schemas de salida.
 """
 
 from __future__ import annotations
@@ -20,10 +24,9 @@ from app.schemas.stats import (
 GROUP_BY_VALUES = ("day", "week", "month")
 ITEM_TYPES = ("product", "service")
 
-# El módulo de PQR llega en la etapa 11: hasta entonces no hay tabla `pqr`
-# que contar, así que estos totales se dejan fijos en 0 en vez de una
-# consulta que fallaría contra una tabla inexistente.
-PQR_PLACEHOLDER = 0
+# Una PQR "abierta" es cualquiera que todavía no se cerró: pendiente, en
+# curso o ya respondida pero sin marcar como cerrada.
+OPEN_PQR_STATUSES = ("pending", "in_progress", "answered")
 
 
 def _week_start(day: date) -> date:
@@ -56,8 +59,8 @@ class StatsService:
                 "invoicesCount": invoices_count,
                 "invoicesTotal": invoices_total,
                 "appointmentsToday": stats_repository.count_appointments_for_day(db, date.today()),
-                "pqrReceived": PQR_PLACEHOLDER,
-                "pqrPending": PQR_PLACEHOLDER,
+                "pqrReceived": stats_repository.count_pqr_total(db),
+                "pqrPending": stats_repository.count_pqr_by_status(db, ("pending",)),
             }
         )
 
@@ -70,7 +73,9 @@ class StatsService:
                 "salesTodayCount": sales_count,
                 "salesTodayTotal": sales_total,
                 "appointmentsToday": stats_repository.count_appointments_for_day(db, today),
-                "pqrAssigned": PQR_PLACEHOLDER,
+                # Sin un campo de asignación por persona en el modelo, "asignadas"
+                # es la cola completa de lo que el equipo todavía no cierra.
+                "pqrAssigned": stats_repository.count_pqr_by_status(db, OPEN_PQR_STATUSES),
             }
         )
 
@@ -85,7 +90,7 @@ class StatsService:
                 "ordersCount": sales_count,
                 "ordersTotal": sales_total,
                 "upcomingAppointments": stats_repository.count_upcoming_appointments(db, user_id=actor.id),
-                "pqrOpen": PQR_PLACEHOLDER,
+                "pqrOpen": stats_repository.count_pqr_open_for_user(db, user_id=actor.id),
             }
         )
 

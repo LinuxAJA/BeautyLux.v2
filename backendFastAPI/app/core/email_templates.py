@@ -1,7 +1,7 @@
 """
-Plantillas de correo (HTML + texto plano) para el flujo de recuperación de
-contraseña. Sin motor de plantillas: son funciones que devuelven strings,
-suficiente para dos correos fijos.
+Plantillas de correo (HTML + texto plano): recuperación de contraseña y PQR
+(quinto avance, requisito 16). Sin motor de plantillas: son funciones que
+devuelven strings, suficiente para un puñado de correos fijos.
 """
 
 from __future__ import annotations
@@ -100,3 +100,59 @@ def password_reset_completed(*, first_name: str) -> tuple[str, str, str]:
 def build_reset_url(token: str) -> str:
     base = settings.FRONTEND_URL.rstrip("/")
     return f"{base}/restablecer-contrasena?token={token}"
+
+
+def pqr_received(*, first_name: str, ticket_number: str, subject: str) -> tuple[str, str, str]:
+    """Confirmación al radicar una PQR: el número de ticket es lo único que
+    hace falta para consultarla después (junto con el correo de contacto)."""
+    mail_subject = f"Recibimos tu PQR {ticket_number} — BeautyLux"
+
+    html_body = _wrap(
+        "Recibimos tu mensaje",
+        f"""
+        <p>Hola {first_name},</p>
+        <p>Registramos tu petición, queja, reclamo o sugerencia sobre
+        «{subject}» con el número de seguimiento:</p>
+        <p style="text-align:center; font-size:20px; font-weight:700; color:#D84A76;">
+          {ticket_number}
+        </p>
+        <p>Guárdalo: con él y tu correo puedes consultar el estado en cualquier
+        momento, sin necesidad de iniciar sesión.</p>
+        <p class="muted">Nuestro equipo te responderá lo antes posible.</p>
+        """,
+    )
+
+    text_body = (
+        f"Hola {first_name},\n\n"
+        f"Registramos tu PQR sobre «{subject}» con el número de seguimiento {ticket_number}.\n"
+        "Guárdalo: con él y tu correo puedes consultar el estado sin iniciar sesión.\n\n"
+        "Nuestro equipo te responderá lo antes posible.\n"
+    )
+
+    return mail_subject, html_body, text_body
+
+
+def pqr_answered(*, first_name: str, ticket_number: str, response: str) -> tuple[str, str, str]:
+    """Notificación cuando el equipo responde una PQR."""
+    mail_subject = f"Respondimos tu PQR {ticket_number} — BeautyLux"
+
+    html_body = _wrap(
+        "Tu PQR tiene respuesta",
+        f"""
+        <p>Hola {first_name},</p>
+        <p>Ya respondimos tu PQR <strong>{ticket_number}</strong>:</p>
+        <p style="background:#f7f3f4; border-radius:12px; padding:16px; white-space:pre-line;">
+          {response}
+        </p>
+        <p class="muted">Si necesitas algo más, puedes radicar una nueva PQR desde el sitio.</p>
+        """,
+    )
+
+    text_body = (
+        f"Hola {first_name},\n\n"
+        f"Ya respondimos tu PQR {ticket_number}:\n\n"
+        f"{response}\n\n"
+        "Si necesitas algo más, puedes radicar una nueva PQR desde el sitio.\n"
+    )
+
+    return mail_subject, html_body, text_body

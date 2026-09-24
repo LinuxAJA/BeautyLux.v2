@@ -13,6 +13,7 @@ import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Pqr from './pages/Pqr';
 import Auth from './pages/Auth';
 import NotFound from './pages/NotFound';
 
@@ -28,6 +29,7 @@ import AdminAppointments from './pages/panel/admin/AdminAppointments';
 import AdminInvoices from './pages/panel/admin/AdminInvoices';
 import AdminReports from './pages/panel/admin/AdminReports';
 import AdminPos from './pages/panel/admin/AdminPos';
+import AdminPqr from './pages/panel/admin/AdminPqr';
 import EmployeeOverview from './pages/panel/employee/EmployeeOverview';
 import EmployeeClients from './pages/panel/employee/EmployeeClients';
 import EmployeeProducts from './pages/panel/employee/EmployeeProducts';
@@ -35,9 +37,11 @@ import EmployeeServices from './pages/panel/employee/EmployeeServices';
 import EmployeeAppointments from './pages/panel/employee/EmployeeAppointments';
 import EmployeeInvoices from './pages/panel/employee/EmployeeInvoices';
 import EmployeePos from './pages/panel/employee/EmployeePos';
+import EmployeePqr from './pages/panel/employee/EmployeePqr';
 import ClientDashboard from './pages/panel/client/ClientDashboard';
 import ClientOrders from './pages/panel/client/ClientOrders';
 import ClientAppointments from './pages/panel/client/ClientAppointments';
+import ClientPqr from './pages/panel/client/ClientPqr';
 
 function App() {
   return (
@@ -53,6 +57,7 @@ function App() {
         </Route>
         <Route path="nosotros" element={<About />} />
         <Route path="contacto" element={<Contact />} />
+        <Route path="pqr" element={<Pqr />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
@@ -74,6 +79,7 @@ function App() {
             <Route path="panel/admin/facturas" element={<AdminInvoices />} />
             <Route path="panel/admin/reportes" element={<AdminReports />} />
             <Route path="panel/admin/pos" element={<AdminPos />} />
+            <Route path="panel/admin/pqr" element={<AdminPqr />} />
             <Route path="panel/admin/bitacora" element={<AdminAuditLog />} />
           </Route>
 
@@ -85,12 +91,14 @@ function App() {
             <Route path="panel/empleado/citas" element={<EmployeeAppointments />} />
             <Route path="panel/empleado/facturas" element={<EmployeeInvoices />} />
             <Route path="panel/empleado/pos" element={<EmployeePos />} />
+            <Route path="panel/empleado/pqr" element={<EmployeePqr />} />
           </Route>
 
           <Route element={<RoleRoute allow={['client']} />}>
             <Route path="panel/cliente" element={<ClientDashboard />} />
             <Route path="panel/cliente/pedidos" element={<ClientOrders />} />
             <Route path="panel/cliente/citas" element={<ClientAppointments />} />
+            <Route path="panel/cliente/pqr" element={<ClientPqr />} />
           </Route>
         </Route>
       </Route>

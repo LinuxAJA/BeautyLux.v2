@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.models.appointment import ACTIVE_STATUSES, Appointment
 from app.models.invoice import Invoice
+from app.models.pqr import Pqr
 from app.models.product import Product
 from app.models.role import Role
 from app.models.sale import Sale
@@ -112,6 +113,19 @@ class StatsRepository:
             Appointment.user_id == user_id,
             Appointment.scheduled_date >= date.today(),
             Appointment.status.in_(("hold", "confirmed")),
+        )
+        return db.execute(stmt).scalar_one()
+
+    def count_pqr_total(self, db: Session) -> int:
+        return db.execute(select(func.count()).select_from(Pqr)).scalar_one()
+
+    def count_pqr_by_status(self, db: Session, statuses: tuple[str, ...]) -> int:
+        stmt = select(func.count()).select_from(Pqr).where(Pqr.status.in_(statuses))
+        return db.execute(stmt).scalar_one()
+
+    def count_pqr_open_for_user(self, db: Session, *, user_id: int) -> int:
+        stmt = select(func.count()).select_from(Pqr).where(
+            Pqr.user_id == user_id, Pqr.status != "closed"
         )
         return db.execute(stmt).scalar_one()
 

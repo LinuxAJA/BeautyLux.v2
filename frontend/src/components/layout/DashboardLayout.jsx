@@ -4,6 +4,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   ListTree,
+  MessageSquareWarning,
   Receipt,
   LogOut,
   Package,
@@ -31,6 +32,7 @@ const NAV_BY_ROLE = {
     { to: '/panel/admin/pos', label: 'Punto de venta', icon: ShoppingCart },
     { to: '/panel/admin/facturas', label: 'Facturación', icon: Receipt },
     { to: '/panel/admin/reportes', label: 'Reportes', icon: BarChart3 },
+    { to: '/panel/admin/pqr', label: 'PQR', icon: MessageSquareWarning },
     { to: '/panel/admin/bitacora', label: 'Bitácora', icon: ScrollText },
   ],
   employee: [
@@ -41,11 +43,13 @@ const NAV_BY_ROLE = {
     { to: '/panel/empleado/citas', label: 'Citas', icon: CalendarDays },
     { to: '/panel/empleado/pos', label: 'Punto de venta', icon: ShoppingCart },
     { to: '/panel/empleado/facturas', label: 'Facturación', icon: Receipt },
+    { to: '/panel/empleado/pqr', label: 'PQR', icon: MessageSquareWarning },
   ],
   client: [
     { to: '/panel/cliente', label: 'Mi perfil', icon: User, end: true },
     { to: '/panel/cliente/pedidos', label: 'Mis pedidos', icon: Package },
     { to: '/panel/cliente/citas', label: 'Mis citas', icon: CalendarDays },
+    { to: '/panel/cliente/pqr', label: 'Mis PQR', icon: MessageSquareWarning },
   ],
 };
 

@@ -32,6 +32,7 @@ export const footerColumns = [
     links: [
       { label: '¿Quiénes somos?', to: '/nosotros' },
       { label: 'Contacto', to: '/contacto' },
+      { label: 'PQR', to: '/pqr' },
       { label: 'Iniciar sesión', to: '/login' },
       { label: 'Crear cuenta', to: '/login' },
     ],

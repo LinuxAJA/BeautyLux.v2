@@ -3048,7 +3048,7 @@
                   "pm.test('200 ok', () => pm.response.to.have.status(200));",
                   "const datos = pm.response.json().data;",
                   "pm.test('trae los totales del requisito 10', () => pm.expect(datos).to.include.keys('usersCount', 'productsCount', 'servicesCount', 'salesCount', 'salesTotal', 'invoicesTotal', 'appointmentsToday'));",
-                  "pm.test('deja listo el contrato de PQR para la etapa 11', () => { pm.expect(datos.pqrReceived).to.eql(0); pm.expect(datos.pqrPending).to.eql(0); });"
+                  "pm.test('trae los contadores de PQR (requisito 16)', () => { pm.expect(datos.pqrReceived).to.be.a('number'); pm.expect(datos.pqrPending).to.be.a('number'); });"
                 ],
                 "type": "text/javascript"
               }
@@ -3624,6 +3624,619 @@
                 {
                   "key": "dateTo",
                   "value": "2026-01-01"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. PQR",
+      "item": [
+        {
+          "name": "POST /pqr (publico, sin sesion, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('trae numero de ticket con el formato PQR-YYYY-NNNNN', () => pm.expect(datos.ticketNumber).to.match(/^PQR-\\d{4}-\\d{5}$/));",
+                  "pm.test('no queda ligada a ninguna cuenta', () => pm.expect(datos.userId).to.be.null);",
+                  "pm.environment.set('pqrPublicId', datos.id);",
+                  "pm.environment.set('pqrPublicTicket', datos.ticketNumber);",
+                  "pm.environment.set('pqrPublicEmail', datos.contactEmail);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"queja\",\n  \"subject\": \"Cambios y devoluciones\",\n  \"message\": \"El producto llego con el empaque danado y quiero una solucion pronto.\",\n  \"contactFirstName\": \"Laura\",\n  \"contactLastName\": \"Perez\",\n  \"contactEmail\": \"laura.postman@example.com\",\n  \"contactPhone\": \"3009998877\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr (autenticado como cliente, 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 creado', () => pm.response.to.have.status(201));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('queda ligada a la cuenta que la radico', () => pm.expect(datos.userId).to.be.a('number'));",
+                  "pm.environment.set('pqrClientId', datos.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"peticion\",\n  \"subject\": \"Estado de mi pedido\",\n  \"message\": \"Quisiera saber cuando llega mi pedido reciente, ya pasaron varios dias.\",\n  \"contactFirstName\": \"Juliana\",\n  \"contactLastName\": \"Torres\",\n  \"contactEmail\": \"cliente@beautylux.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr (tipo invalido, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"otro-tipo\",\n  \"subject\": \"Prueba\",\n  \"message\": \"Mensaje de prueba con longitud suficiente para pasar validacion.\",\n  \"contactFirstName\": \"Ana\",\n  \"contactLastName\": \"Ruiz\",\n  \"contactEmail\": \"ana@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr (mensaje muy corto, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"sugerencia\",\n  \"subject\": \"Prueba\",\n  \"message\": \"Corto\",\n  \"contactFirstName\": \"Ana\",\n  \"contactLastName\": \"Ruiz\",\n  \"contactEmail\": \"ana@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr/{ticketNumber} (consulta publica correcta, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('trae el estado de la PQR', () => pm.expect(pm.response.json().data.status).to.eql('pending'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrPublicTicket}}?email={{pqrPublicEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrPublicTicket}}"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{pqrPublicEmail}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr/{ticketNumber} (correo equivocado, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404: no confirma ni niega existencia', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrPublicTicket}}?email=otro@example.com",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrPublicTicket}}"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "otro@example.com"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr/{ticketNumber} (ticket inexistente, 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 no encontrado', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pqr/PQR-2020-99999?email=nadie@example.com",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "PQR-2020-99999"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "nadie@example.com"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr (el admin ve todas, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('incluye la PQR publica y la del cliente', () => pm.expect(pm.response.json().meta.total).to.be.at.least(2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pqr?perPage=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ],
+              "query": [
+                {
+                  "key": "perPage",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr (el cliente ve solo las suyas, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const filas = pm.response.json().data;",
+                  "pm.test('ninguna fila es de otra cuenta', () => pm.expect(filas.every((fila) => fila.userId === null || fila.contactEmail === 'cliente@beautylux.com')).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pqr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr (sin autenticar, 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin sesion', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pqr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr/{id}/response (el empleado responde, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('queda respondida', () => pm.expect(pm.response.json().data.status).to.eql('answered'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{employeeAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Hola Laura, lamentamos el inconveniente. Ya coordinamos el cambio del producto.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrPublicId}}/response",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrPublicId}}",
+                "response"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr/{id}/response (el cliente no puede, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido: solo personal', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Intento de respuesta desde una cuenta cliente\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrClientId}}/response",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrClientId}}",
+                "response"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr/{id}/response (respuesta muy corta, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 de validacion', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"ok\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrClientId}}/response",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrClientId}}",
+                "response"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH /pqr/{id}/status (el admin la cierra, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('queda cerrada', () => pm.expect(pm.response.json().data.status).to.eql('closed'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"closed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrPublicId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrPublicId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /pqr/{id}/response (una PQR cerrada, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400: no se puede responder una PQR cerrada', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"otra respuesta valida para una PQR ya cerrada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrPublicId}}/response",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrPublicId}}",
+                "response"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /pqr/{ticketNumber} (refleja la respuesta y el cierre, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('estado cerrado con respuesta visible', () => { pm.expect(datos.status).to.eql('closed'); pm.expect(datos.response).to.be.a('string').that.is.not.empty; });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pqr/{{pqrPublicTicket}}?email={{pqrPublicEmail}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pqr",
+                "{{pqrPublicTicket}}"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "{{pqrPublicEmail}}"
                 }
               ]
             }
