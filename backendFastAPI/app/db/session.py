@@ -12,18 +12,30 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
-DATABASE_URL = (
-    f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}?charset=utf8mb4"
+# URL.create escapa cada parte: una contraseña generada con `@`, `/` o `#`
+# rompería una URL armada a mano.
+DATABASE_URL = URL.create(
+    "mysql+pymysql",
+    username=settings.DB_USER,
+    password=settings.DB_PASSWORD,
+    host=settings.DB_HOST,
+    port=settings.DB_PORT,
+    database=settings.DB_NAME,
+    query={"charset": "utf8mb4"},
 )
+
+# Aiven (producción) solo acepta conexiones TLS verificadas contra su CA;
+# en local DB_SSL_CA queda vacía y la conexión no cambia.
+connect_args = {"ssl": {"ca": settings.DB_SSL_CA}} if settings.DB_SSL_CA else {}
 
 engine = create_engine(
     DATABASE_URL,
+    connect_args=connect_args,
     pool_pre_ping=True,
     pool_size=settings.DB_CONNECTION_LIMIT,
     max_overflow=0,

@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -29,7 +29,15 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "production", "test"] = "development"
     PORT: int = Field(default=8000, gt=0)
     API_PREFIX: str = Field(default="/api", min_length=1)
+    # Uno o varios orígenes separados por coma: en producción van el dominio
+    # de Vercel y sus previews, además de localhost para desarrollo.
     CORS_ORIGIN: str = Field(min_length=1)
+
+    # Cookie de refresh. En local basta `lax`; con el frontend en Vercel y la
+    # API en Render (dominios distintos) hace falta `none`, que el navegador
+    # solo acepta con `Secure`. Sin valor, `Secure` se activa en producción.
+    COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
+    COOKIE_SECURE: bool | None = None
 
     # Base de datos
     DB_HOST: str = Field(min_length=1)
@@ -38,6 +46,9 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = ""
     DB_NAME: str = Field(min_length=1)
     DB_CONNECTION_LIMIT: int = Field(default=10, gt=0)
+    # Ruta al certificado CA del servidor MySQL (Aiven exige TLS). Vacía en
+    # local: la conexión sigue sin TLS, igual que antes.
+    DB_SSL_CA: str = ""
 
     # JWT
     JWT_ACCESS_SECRET: str = Field(min_length=32)
@@ -89,9 +100,23 @@ class Settings(BaseSettings):
             raise ValueError("JWT_ACCESS_SECRET debe tener al menos 32 caracteres")
         return value
 
+    @model_validator(mode="after")
+    def _validate_cookie_policy(self) -> "Settings":
+        if self.COOKIE_SAMESITE == "none" and not self.cookie_secure:
+            raise ValueError("COOKIE_SAMESITE=none exige COOKIE_SECURE=true (el navegador rechaza la cookie sin Secure)")
+        return self
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip().rstrip("/") for origin in self.CORS_ORIGIN.split(",") if origin.strip()]
+
+    @property
+    def cookie_secure(self) -> bool:
+        return self.is_production if self.COOKIE_SECURE is None else self.COOKIE_SECURE
 
     @property
     def is_test(self) -> bool:

@@ -1,0 +1,77 @@
+# Blueprint de Render — backend FastAPI de BeautyLux (quinto avance, requisito 20).
+#
+# Un solo servicio: la API. La base de datos es MySQL gestionado en Aiven.io
+# (Render solo ofrece PostgreSQL gestionado) y el frontend va en Vercel.
+#
+# Antes del primer despliegue, en el panel de Render:
+#   - Environment > Secret Files: subir el ca.pem de Aiven con el nombre `ca.pem`
+#     (queda en /etc/secrets/ca.pem, que es lo que apunta DB_SSL_CA).
+#   - Completar las variables marcadas `sync: false`: Render las pide al crear
+#     el Blueprint y nunca se versionan.
+# Paso a paso completo: docs/GUIA_DESPLIEGUE.md (fuera del repositorio).
+
+services:
+  - type: web
+    name: beautylux-api
+    runtime: docker
+    rootDir: backendFastAPI
+    dockerfilePath: ./backendFastAPI/Dockerfile
+    dockerContext: ./backendFastAPI
+    region: oregon
+    plan: free
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_PREFIX
+        value: /api
+
+      # Dominio de Vercel (y sus previews), separados por coma.
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+      # Vercel y Render son dominios distintos: sin SameSite=None el login
+      # parece funcionar y el refresh de la sesión falla en silencio.
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: COOKIE_SECURE
+        value: "true"
+
+      # MySQL en Aiven (Overview > Connection information del servicio).
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: db_beautylux_v2
+      - key: DB_SSL_CA
+        value: /etc/secrets/ca.pem
+      # La capa gratuita de Aiven limita las conexiones simultáneas.
+      - key: DB_CONNECTION_LIMIT
+        value: "5"
+
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: EXPOSE_RESET_TOKEN
+        value: "false"
+
+      # Chatbot con Google Gemini. Sin GEMINI_API_KEY responde el FAQ local.
+      - key: AI_PROVIDER
+        value: gemini
+      - key: AI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: AI_ENABLED
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Correo opcional; con MAIL_ENABLED=false los mensajes solo quedan en el log.
+      - key: MAIL_ENABLED
+        value: "false"

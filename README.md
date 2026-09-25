@@ -14,10 +14,14 @@ BeautyLux.v2/
 └── frontend/         Aplicación web — React + Vite + Tailwind — ver frontend/README.md
 ```
 
-`backend/` y `backendFastAPI/` exponen **el mismo contrato de API** (mismos 36 endpoints, mismo
-formato de respuesta, misma autenticación JWT) contra **la misma base de datos**
-`db_beautylux_v2`. El frontend puede apuntar a cualquiera de los dos cambiando una sola
+`backend/` y `backendFastAPI/` exponen **el mismo contrato de API** (los 36 endpoints del
+Cuarto Avance, mismo formato de respuesta, misma autenticación JWT) contra **la misma base de
+datos** `db_beautylux_v2`. El frontend puede apuntar a cualquiera de los dos cambiando una sola
 variable de entorno — ver más abajo.
+
+El **Quinto Avance** (ventas, citas, facturación, reportes PDF/Excel, dashboards, PQR y chatbot
+con IA) se construyó solo sobre `backendFastAPI/`, que hoy expone 67 endpoints; el backend Node
+se conserva intacto como entregable del Tercer Avance.
 
 ## Puesta en marcha rápida
 
@@ -82,3 +86,36 @@ entregables del Cuarto Avance: [`ENTREGABLES_CUARTO_AVANCE.md`](docs/ENTREGABLES
 - Python 3.11+ (para `backendFastAPI/`)
 - MySQL 8 activo en `localhost:3306` (ver la nota sobre XAMPP en `backend/README.md`
   si tienes otro servidor MySQL/MariaDB instalado)
+
+## Despliegue
+
+Arquitectura de producción: **frontend en Vercel → backend FastAPI en Render → MySQL
+gestionado en Aiven.io**. La base de datos va fuera de Render porque Render solo ofrece
+PostgreSQL gestionado. El repositorio trae la configuración lista; el despliegue se hace con
+las credenciales propias de cada plataforma.
+
+| Archivo | Para qué |
+|---|---|
+| `render.yaml` | Blueprint de Render: un web service Docker con `rootDir: backendFastAPI`, health check en `/api/health` y las variables de producción (las secretas se piden al crear el Blueprint) |
+| `backendFastAPI/Dockerfile` | `python:3.11-slim`, usuario sin privilegios, `uvicorn` en el `$PORT` que inyecta Render y con `--proxy-headers` (IP real para el rate limit) |
+| `backendFastAPI/.env.production.example` | Todas las variables del backend en producción |
+| `frontend/vercel.json` | Build de Vite y rewrite SPA, para que recargar `/panel/...` no dé 404 |
+| `frontend/.env.production.example` | `VITE_API_URL` apuntando a Render |
+
+Orden de despliegue:
+
+1. **Aiven** — crear un servicio MySQL, descargar su `ca.pem` y cargar el esquema desde tu
+   equipo, una sola vez (con `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` de Aiven y
+   `DB_SSL_CA=ruta/al/ca.pem` en `backendFastAPI/.env`):
+   `python database/run.py ping`, `python database/run.py schema` y `python database/run.py seed`.
+   **No repitas `schema` ni uses `reset` sobre una base con datos: los borran.**
+2. **Render** — New > Blueprint con este repositorio; completar las variables secretas y subir
+   el `ca.pem` en Environment > Secret Files (queda en `/etc/secrets/ca.pem`).
+3. **Vercel** — importar el repositorio con Root Directory `frontend` y definir `VITE_API_URL`
+   con la URL de Render terminada en `/api`.
+4. Volver a Render y poner la URL de Vercel en `CORS_ORIGIN` y `FRONTEND_URL` (varios orígenes,
+   separados por coma).
+
+Como frontend y API quedan en dominios distintos, la cookie de refresh viaja con
+`SameSite=None; Secure` (`COOKIE_SAMESITE=none`, `COOKIE_SECURE=true`, ya fijadas en
+`render.yaml`). Sin eso, el login funcionaría pero la sesión se perdería al recargar la página.
