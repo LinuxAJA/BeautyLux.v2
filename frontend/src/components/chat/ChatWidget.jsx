@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { FileWarning, Send, Sparkles, X } from 'lucide-react';
+import { FileWarning, Send, X } from 'lucide-react';
 
+import BrandLogo from '../ui/BrandLogo';
 import Button from '../ui/Button';
 import * as chatService from '../../services/chat.service';
 import { cn } from '../../utils/cn';
@@ -43,6 +44,20 @@ function ChatWidget({ onClose }) {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
   const listRef = useRef(null);
+  const dialogRef = useRef(null);
+
+  // Al abrir, el foco entra al panel; Escape lo cierra igual que la X.
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,16 +137,16 @@ function ChatWidget({ onClose }) {
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Chat de BeautyLux"
-      className="fixed inset-0 z-50 flex flex-col bg-background shadow-elegant sm:inset-auto sm:bottom-5 sm:right-5 sm:h-125 sm:w-96 sm:rounded-2xl sm:border sm:border-border"
+      className="fixed inset-0 z-50 flex flex-col bg-background shadow-elegant focus:outline-none sm:inset-auto sm:bottom-5 sm:right-5 sm:h-125 sm:w-96 sm:rounded-2xl sm:border sm:border-border"
     >
       <div className="flex items-center justify-between gap-3 border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-full primary-gradient text-primary-foreground">
-            <Sparkles className="size-4.5" aria-hidden="true" />
-          </span>
+          <BrandLogo variant="mark" size="sm" />
           <div>
             <h2 className="font-serif text-base font-semibold leading-tight">Asistente BeautyLux</h2>
             <p className="text-xs text-muted-foreground">Respuestas al instante</p>

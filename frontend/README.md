@@ -1,7 +1,9 @@
 # BeautyLux — Frontend
 
-Aplicación web de cosmética desarrollada con **React 19 + Vite 8**, **React Router 7** y
-**Tailwind CSS v4**, conectada a un backend real (autenticación JWT, catálogo y paneles por rol).
+Aplicación web de cosmética y salón de belleza desarrollada con **React 19 + Vite 8**,
+**React Router 7** y **Tailwind CSS v4**, conectada a un backend real: autenticación JWT,
+catálogo de productos y servicios, carrito y checkout con agenda de citas, punto de venta,
+facturación, reportes, dashboards por rol con gráficas (`recharts`), PQR y chatbot con IA.
 
 ## Puesta en marcha
 
@@ -21,31 +23,42 @@ Necesita un backend corriendo — ver la sección **Backend y variables de entor
 src/
 ├── assets/images/       10 imágenes del carrusel + imagen del hero
 ├── components/
-│   ├── ui/              Button · Input · Select · Checkbox · Modal · Card
-│   │                    Badge · Rating · SectionHeading · PageHero · SocialIcon
+│   ├── ui/              Button · Input · Select · Checkbox · Modal · Card · Badge
+│   │                    Rating · SectionHeading · PageHero · SocialIcon · BrandLogo
 │   ├── layout/          Header · UserMenu · Footer · MainLayout
 │   │                    MobileMenu · DashboardLayout
-│   ├── home/            Hero · Carousel · CarouselSlide · CategoryGrid
-│   │                    FeaturedProducts · Benefits · Testimonials
-│   │                    Newsletter · NewsletterForm
+│   ├── home/            Hero · Carousel · CarouselSlide · CategoryGrid · Benefits
+│   │                    FeaturedProducts · FeaturedServices · Testimonials · Newsletter*
 │   ├── product/         ProductCard · ProductGrid · ProductFilters
-│   ├── auth/             LoginForm · RecoverPassword · ResetPasswordForm
+│   ├── service/         ServiceCard · ServiceGrid · ServiceFilters
+│   ├── cart/            CartDrawer · CartItemRow · FreeShippingMeter · OrderSummary
+│   ├── checkout/        CheckoutStepper · AppointmentStep · ShippingStep
+│   │                    PaymentStep · HoldTimer
+│   ├── booking/         SlotPicker (calendario semanal + franjas libres)
+│   ├── pos/             PosItemPicker · PosTicket · PosCustomerPanel
+│   │                    PosCheckoutModal · QuickClientModal
+│   ├── chat/            FloatingActions (torre de FABs) · ChatWidget
+│   ├── common/          WhatsAppButton · InvoiceDownloadButton
+│   ├── auth/            LoginForm · RecoverPassword · ResetPasswordForm
 │   │                    RegisterModal · PasswordInput · PasswordStrength
 │   │                    ProtectedRoute · RoleRoute
-│   └── dashboard/       DataTable · StatCard · StatusBadge · ConfirmDialog
-│                        UsersManager · ProductsManager · ServicesManager
-│                        CategoriesManager · *FormModal
-├── hooks/               useForm · useCarousel · useDisclosure
-│                        useAuth · useApi · useScrollTop
+│   └── dashboard/       DataTable · StatCard · ConfirmDialog · *StatusBadge
+│                        ChartCard · SalesBarChart · SalesLineChart · DashboardFilters
+│                        Users/Products/Services/Categories/Appointments/Invoices/
+│                        Sales/PqrManager · *FormModal · RescheduleModal · PqrResponseModal
+├── hooks/               useForm · useCarousel · useDisclosure · useAuth · useCart
+│                        useApi · useScrollTop
 ├── data/                carouselSlides · products (solo `formatPrice`) · categories
-│                        testimonials · benefits · navLinks · documentTypes
-├── utils/               validators (RegEx y reglas) · cn (clases condicionales)
-├── context/             AuthContext · AuthProvider
-├── services/            api (cliente fetch) · auth · users · products
-│                        services · categories · meta
-├── pages/               Home · Products · About · Contact · Auth · NotFound
-│                        panel/ (admin · employee · client)
-└── index.css            Sistema de diseño (tokens, tema y utilidades propias)
+│                        testimonials · benefits · navLinks · documentTypes · checkout
+├── utils/               validators · cn · download (guardar blobs) · duration
+├── context/             AuthContext · AuthProvider · CartContext · CartProvider
+├── services/            api (cliente fetch + descarga de binarios) · auth · users
+│                        products · services · categories · meta · sales · appointments
+│                        invoices · reports · stats · pqr · chat
+├── pages/               Home · Products · Services · Cart · Checkout · OrderConfirmation
+│                        Pqr · About · Contact · Auth · NotFound
+│                        panel/ (admin · employee · client · pos)
+└── index.css            Sistema de diseño (tokens, tema claro/oscuro y utilidades propias)
 ```
 
 ## Backend y variables de entorno
@@ -70,16 +83,25 @@ Ver [`../backendFastAPI/README.md`](../backendFastAPI/README.md) o
 | ------------------------------ | ---------------------------------------------------------- | :----: |
 | `/`                           | Inicio con el carrusel de 10 imágenes                     | público |
 | `/productos`                  | Catálogo con búsqueda, filtro por categoría y orden      | público |
+| `/servicios`                  | Catálogo de servicios con duración, filtros y orden       | público |
+| `/bolsa`                      | Carrito "Tu bolsa" (productos y servicios)                | público |
+| `/checkout`                   | Compra en 4 pasos: cita, entrega, pago simulado, revisión | 🔑 |
+| `/pedido/:saleNumber`         | Confirmación del pedido (o detalle de venta, si es personal) | 🔑 |
+| `/pqr`                        | Radicar una PQR y consultar su estado sin iniciar sesión  | público |
 | `/nosotros`                   | ¿Quiénes somos?                                          | público |
 | `/contacto`                   | Contacto con formulario y preguntas frecuentes             | público |
 | `/login`                      | Inicio de sesión, recuperar contraseña y registro         | público |
 | `/restablecer-contrasena`     | Crear contraseña nueva (enlace del correo de recuperación) | público |
 | `/panel`                      | Redirige al panel del rol autenticado                       | 🔑 |
-| `/panel/admin*`                | Usuarios, productos, servicios, categorías, bitácora     | 👑 |
-| `/panel/empleado*`             | Clientes (solo lectura/edición), productos, servicios     | 🧑‍💼 |
-| `/panel/cliente`               | Perfil, resumen de cuenta, cambio de contraseña             | 🙋 |
+| `/panel/admin*`                | Resumen con gráficas, usuarios, productos, servicios, categorías, citas, ventas, punto de venta, facturación, reportes, PQR, bitácora | 👑 |
+| `/panel/empleado*`             | Resumen operativo, clientes, productos, servicios, citas, ventas, punto de venta, facturación, PQR | 🧑‍💼 |
+| `/panel/cliente*`              | Perfil y resumen, mis pedidos, mis citas, mis PQR           | 🙋 |
 | `/403`                        | Acceso denegado (rol sin permiso para la ruta)              | 🔑 |
 | cualquier otra                 | Página 404                                                  | público |
+
+Toda vista se alcanza desde la navegación — `mainNavLinks`, `footerColumns`,
+`accountShortcuts` (`data/navLinks.js`) y `NAV_BY_ROLE` (`DashboardLayout.jsx`) —, nunca
+solo escribiendo la URL.
 
 ## Autenticación
 
@@ -95,8 +117,9 @@ Real, contra el backend elegido — no hay simulación ni `localStorage` para la
   un solo uso válido 30 minutos, y `ResetPasswordForm` (en `/restablecer-contrasena?token=...`)
   completa el cambio (`POST /auth/reset-password`).
 - El nombre, correo y rol del usuario autenticado se muestran en el Navbar dentro de un
-  menú desplegable (`components/layout/UserMenu.jsx`), con accesos a "Mi panel" y
-  "Cerrar sesión".
+  menú desplegable (`components/layout/UserMenu.jsx`), con "Mi panel", atajos según el rol
+  (`accountShortcuts` en `data/navLinks.js`: pedidos/citas/PQR del cliente, punto de venta y
+  PQR del personal) y "Cerrar sesión". El menú móvil muestra los mismos atajos.
 
 Para probar el flujo completo: `/login` → **Crear una cuenta** → completa el registro →
 **Ir a iniciar sesión** → entra con ese correo y contraseña. Los tres roles (`admin`,
@@ -141,14 +164,20 @@ Tailwind CSS v4 se configura desde el propio CSS (no existe `tailwind.config.js`
 En `src/index.css` conviven tres bloques:
 
 1. **`:root` / `.dark`** — las variables crudas del tema (colores, gradientes, sombras).
+   `.dark` redefine también la paleta de belleza, los estados (`--destructive`,
+   `--success`) y los degradados, para que ningún fondo claro quede bajo texto claro.
 2. **`@theme inline`** — el puente que convierte esas variables en utilidades:
    `bg-background`, `text-primary`, `border-border`, `bg-blush`, `shadow-glow`,
    `font-serif`, `animate-fade-up`, etc.
 3. **`@utility`** — utilidades propias del proyecto: `hero-gradient`, `gold-gradient`,
-   `primary-gradient`, `subtle-gradient`, `text-gradient`, `smooth-transition`,
-   `container-app`.
+   `primary-gradient`, `subtle-gradient`, `text-gradient`, `text-gradient-hero`,
+   `text-gradient-gold`, `label-caps`, `smooth-transition`, `container-app`.
 
-Tipografías: **Playfair Display** para títulos e **Inter** para el cuerpo.
+Tipografías: **Playfair Display** para títulos e **Inter** para el cuerpo. El logo sale
+siempre de `components/ui/BrandLogo.jsx`.
+
+La navegación completa del Header aparece desde `lg` (1024 px); por debajo, el menú
+hamburguesa. Con seis enlaces más el menú de usuario, en `md` (768 px) no caben.
 
 ## Componente `Carousel`
 
@@ -163,11 +192,18 @@ Reutilizable y controlado por el hook `useCarousel`:
 - Navegación por flechas, indicadores, teclas `←` `→` y deslizamiento táctil en móvil.
 - Respeta `prefers-reduced-motion` y anuncia los cambios con `aria-live`.
 
-## Botón flotante de WhatsApp
+## Acciones flotantes: chatbot y WhatsApp
 
-`components/common/WhatsAppButton.jsx` es fijo (`position: fixed`) y reutilizable (sin
-props, lee `VITE_WHATSAPP_NUMBER`). Se monta en `MainLayout`, `DashboardLayout` y en la
-página `/login`, así que está visible independientemente de si hay sesión iniciada.
+`components/chat/FloatingActions.jsx` es una torre vertical fija abajo a la derecha: el
+botón del chatbot arriba y el de WhatsApp (`common/WhatsAppButton.jsx`, lee
+`VITE_WHATSAPP_NUMBER`) abajo. Se monta en `MainLayout`, `DashboardLayout` y `/login`.
+
+Al abrir el chat (`chat/ChatWidget.jsx`) **la torre entera se oculta**; el panel tiene su
+propia X, se cierra también con Escape y al cerrarlo el foco vuelve al botón del chat. En
+escritorio es una ventana anclada a la esquina; en móvil ocupa la pantalla completa. La
+conversación se retoma entre recargas: `{conversationId, sessionToken}` se guarda en
+`localStorage` (no es un token de autenticación). Las respuestas las genera Google Gemini
+desde el backend; sin API Key, el backend responde con un FAQ local.
 
 ## Notas técnicas
 

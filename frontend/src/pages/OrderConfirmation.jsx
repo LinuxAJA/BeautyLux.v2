@@ -7,6 +7,7 @@ import InvoiceDownloadButton from '../components/common/InvoiceDownloadButton';
 import OrderSummary from '../components/cart/OrderSummary';
 import PageHero from '../components/ui/PageHero';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../hooks/useAuth';
 import * as appointmentsService from '../services/appointments.service';
 import * as salesService from '../services/sales.service';
 import { formatPrice } from '../data/products';
@@ -25,15 +26,21 @@ const PAYMENT_LABELS = {
   cash: 'Efectivo contra entrega',
 };
 
+const STAFF_ROLES = ['admin', 'employee'];
+
 /**
  * Confirmación del pedido, en `/pedido/:saleNumber`.
  *
  * Todo lo que se muestra viene del servidor, no del carrito: es el
  * comprobante de lo que quedó registrado, con los importes definitivos.
+ * El personal también llega aquí desde el historial de ventas, así que la
+ * cabecera cambia de "gracias por tu compra" a "detalle de la venta".
  */
 function OrderConfirmation() {
   const { saleNumber } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isStaff = STAFF_ROLES.includes(user?.role?.name);
 
   const { data: sale, error, isLoading } = useApi(
     () => salesService.getSaleByNumber(saleNumber),
@@ -75,12 +82,21 @@ function OrderConfirmation() {
 
   return (
     <>
-      <PageHero
-        eyebrow="Pedido confirmado"
-        title="¡Gracias por tu"
-        highlight="compra!"
-        subtitle={`Tu pedido ${sale.saleNumber} quedó registrado.`}
-      />
+      {isStaff ? (
+        <PageHero
+          eyebrow="Detalle de venta"
+          title="Venta"
+          highlight={sale.saleNumber}
+          subtitle={`Registrada a nombre de ${sale.customer.firstName} ${sale.customer.lastName}.`}
+        />
+      ) : (
+        <PageHero
+          eyebrow="Pedido confirmado"
+          title="¡Gracias por tu"
+          highlight="compra!"
+          subtitle={`Tu pedido ${sale.saleNumber} quedó registrado.`}
+        />
+      )}
 
       <section className="container-app py-12 lg:py-16">
         <div className="grid gap-8 lg:grid-cols-12">
@@ -89,10 +105,17 @@ function OrderConfirmation() {
               <CircleCheck className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden="true" />
               <div>
                 <h2 className="font-serif text-lg font-semibold">Pedido {sale.saleNumber}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Te escribiremos a {sale.customer.email ?? 'tu correo'} para coordinar el pago con{' '}
-                  {PAYMENT_LABELS[sale.paymentMethod] ?? sale.paymentMethod} y la entrega.
-                </p>
+                {sale.channel === 'pos' ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Venta registrada en el mostrador, con pago en{' '}
+                    {sale.paymentMethod === 'cash' ? 'efectivo' : (PAYMENT_LABELS[sale.paymentMethod] ?? sale.paymentMethod)}.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Te escribiremos a {sale.customer.email ?? 'tu correo'} para coordinar el pago con{' '}
+                    {PAYMENT_LABELS[sale.paymentMethod] ?? sale.paymentMethod} y la entrega.
+                  </p>
+                )}
               </div>
             </Card>
 
@@ -173,14 +196,25 @@ function OrderConfirmation() {
               </Card>
             )}
 
-            <div className="flex flex-wrap gap-3">
-              <Button variant="outline" onClick={() => navigate('/productos')}>
-                Seguir comprando
+            {isStaff ? (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  navigate(user.role.name === 'admin' ? '/panel/admin/ventas' : '/panel/empleado/ventas')
+                }
+              >
+                Volver al historial de ventas
               </Button>
-              <Button variant="ghost" onClick={() => navigate('/panel/cliente/pedidos')}>
-                Ver mis pedidos
-              </Button>
-            </div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <Button variant="outline" onClick={() => navigate('/productos')}>
+                  Seguir comprando
+                </Button>
+                <Button variant="ghost" onClick={() => navigate('/panel/cliente/pedidos')}>
+                  Ver mis pedidos
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-5">

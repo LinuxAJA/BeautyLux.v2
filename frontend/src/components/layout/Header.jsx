@@ -53,7 +53,7 @@ function Header() {
             <BrandLogo />
           </Link>
 
-          <nav className="hidden md:flex md:items-center md:gap-1" aria-label="Navegación principal">
+          <nav className="hidden lg:flex lg:items-center lg:gap-1" aria-label="Navegación principal">
             {mainNavLinks.map(({ label, to }) => (
               <NavLink
                 key={to}
@@ -103,14 +103,14 @@ function Header() {
             </Button>
 
             {isAuthenticated ? (
-              <div className="hidden md:flex">
+              <div className="hidden lg:flex">
                 <UserMenu />
               </div>
             ) : (
               <Button
                 variant="gradient"
                 size="sm"
-                className="hidden md:inline-flex"
+                className="hidden lg:inline-flex"
                 onClick={() => navigate('/login')}
               >
                 Iniciar sesión
@@ -120,7 +120,7 @@ function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="lg:hidden"
               aria-label="Abrir menú de navegación"
               aria-expanded={isMenuOpen}
               onClick={() => setIsMenuOpen(true)}

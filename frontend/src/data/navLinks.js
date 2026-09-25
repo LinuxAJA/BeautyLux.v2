@@ -8,6 +8,28 @@ export const mainNavLinks = [
   { label: 'PQR', to: '/pqr' },
 ];
 
+/**
+ * Atajos de cuenta por rol, para el menú del usuario (escritorio y móvil).
+ * El icono se resuelve en el componente con lucide-react, igual que `socialLinks`.
+ */
+export const accountShortcuts = {
+  admin: [
+    { label: 'Punto de venta', to: '/panel/admin/pos', icon: 'pos' },
+    { label: 'Reportes', to: '/panel/admin/reportes', icon: 'reports' },
+    { label: 'PQR', to: '/panel/admin/pqr', icon: 'pqr' },
+  ],
+  employee: [
+    { label: 'Punto de venta', to: '/panel/empleado/pos', icon: 'pos' },
+    { label: 'Agenda de citas', to: '/panel/empleado/citas', icon: 'appointments' },
+    { label: 'PQR', to: '/panel/empleado/pqr', icon: 'pqr' },
+  ],
+  client: [
+    { label: 'Mis pedidos', to: '/panel/cliente/pedidos', icon: 'orders' },
+    { label: 'Mis citas', to: '/panel/cliente/citas', icon: 'appointments' },
+    { label: 'Mis PQR', to: '/panel/cliente/pqr', icon: 'pqr' },
+  ],
+};
+
 /** Columnas de enlaces del pie de página. */
 export const footerColumns = [
   {

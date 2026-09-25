@@ -47,7 +47,7 @@ function DataTable({ columns, rows, isLoading, error, search, onSearchChange, se
 
             {!isLoading && error && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-destructive">
+                <td role="alert" colSpan={columns.length} className="px-4 py-10 text-center text-destructive">
                   {error.message ?? 'Ocurrió un error al cargar la información.'}
                 </td>
               </tr>

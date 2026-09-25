@@ -1,9 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ChevronDown, LayoutDashboard, LogOut } from 'lucide-react';
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  MessageSquareWarning,
+  Package,
+  ShoppingCart,
+} from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth';
+import { accountShortcuts } from '../../data/navLinks';
 import { cn } from '../../utils/cn';
+
+const SHORTCUT_ICONS = {
+  orders: Package,
+  appointments: CalendarDays,
+  pqr: MessageSquareWarning,
+  pos: ShoppingCart,
+  reports: BarChart3,
+};
+
+const MENU_ITEM_CLASS =
+  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 smooth-transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /**
  * Menú desplegable del usuario autenticado, para el navbar público.
@@ -85,24 +106,32 @@ function UserMenu() {
             <p className="mt-1 text-xs font-medium text-primary">{user.role.label}</p>
           </div>
 
-          <Link
-            to="/panel"
-            role="menuitem"
-            className="mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 smooth-transition hover:bg-muted"
-          >
+          <Link to="/panel" role="menuitem" className={cn('mt-1', MENU_ITEM_CLASS)}>
             <LayoutDashboard className="size-4" aria-hidden="true" />
             Mi panel
           </Link>
 
-          <button
-            type="button"
-            role="menuitem"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-destructive smooth-transition hover:bg-destructive/10"
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            Cerrar sesión
-          </button>
+          {(accountShortcuts[user.role.name] ?? []).map(({ label, to, icon }) => {
+            const Icon = SHORTCUT_ICONS[icon];
+            return (
+              <Link key={to} to={to} role="menuitem" className={MENU_ITEM_CLASS}>
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
+              </Link>
+            );
+          })}
+
+          <div className="mt-1 border-t border-border pt-1">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-destructive smooth-transition hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       )}
     </div>

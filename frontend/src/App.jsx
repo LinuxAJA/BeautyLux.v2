@@ -30,6 +30,7 @@ import AdminInvoices from './pages/panel/admin/AdminInvoices';
 import AdminReports from './pages/panel/admin/AdminReports';
 import AdminPos from './pages/panel/admin/AdminPos';
 import AdminPqr from './pages/panel/admin/AdminPqr';
+import AdminSales from './pages/panel/admin/AdminSales';
 import EmployeeOverview from './pages/panel/employee/EmployeeOverview';
 import EmployeeClients from './pages/panel/employee/EmployeeClients';
 import EmployeeProducts from './pages/panel/employee/EmployeeProducts';
@@ -38,6 +39,7 @@ import EmployeeAppointments from './pages/panel/employee/EmployeeAppointments';
 import EmployeeInvoices from './pages/panel/employee/EmployeeInvoices';
 import EmployeePos from './pages/panel/employee/EmployeePos';
 import EmployeePqr from './pages/panel/employee/EmployeePqr';
+import EmployeeSales from './pages/panel/employee/EmployeeSales';
 import ClientDashboard from './pages/panel/client/ClientDashboard';
 import ClientOrders from './pages/panel/client/ClientOrders';
 import ClientAppointments from './pages/panel/client/ClientAppointments';
@@ -76,6 +78,7 @@ function App() {
             <Route path="panel/admin/servicios" element={<AdminServices />} />
             <Route path="panel/admin/categorias" element={<AdminCategories />} />
             <Route path="panel/admin/citas" element={<AdminAppointments />} />
+            <Route path="panel/admin/ventas" element={<AdminSales />} />
             <Route path="panel/admin/facturas" element={<AdminInvoices />} />
             <Route path="panel/admin/reportes" element={<AdminReports />} />
             <Route path="panel/admin/pos" element={<AdminPos />} />
@@ -89,6 +92,7 @@ function App() {
             <Route path="panel/empleado/productos" element={<EmployeeProducts />} />
             <Route path="panel/empleado/servicios" element={<EmployeeServices />} />
             <Route path="panel/empleado/citas" element={<EmployeeAppointments />} />
+            <Route path="panel/empleado/ventas" element={<EmployeeSales />} />
             <Route path="panel/empleado/facturas" element={<EmployeeInvoices />} />
             <Route path="panel/empleado/pos" element={<EmployeePos />} />
             <Route path="panel/empleado/pqr" element={<EmployeePqr />} />

@@ -24,7 +24,7 @@ function Products() {
 
   const { data: categories } = useApi(() => categoriesService.listCategories('product'), []);
 
-  const { data: apiProducts, isLoading } = useApi(() => {
+  const { data: apiProducts, isLoading, error } = useApi(() => {
     const { orderBy, orderDir } = SORT_TO_QUERY[sort];
     return productsService.listProducts({
       search: search || undefined,
@@ -60,11 +60,20 @@ function Products() {
           categories={categories ?? []}
         />
 
-        <p className="mt-6 text-sm text-muted-foreground" aria-live="polite">
-          {isLoading
-            ? 'Buscando productos...'
-            : `${visibleProducts.length} ${visibleProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}`}
-        </p>
+        {error ? (
+          <p
+            role="alert"
+            className="mt-6 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {error.message ?? 'No pudimos cargar los productos. Inténtalo de nuevo en un momento.'}
+          </p>
+        ) : (
+          <p className="mt-6 text-sm text-muted-foreground" aria-live="polite">
+            {isLoading
+              ? 'Buscando productos...'
+              : `${visibleProducts.length} ${visibleProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}`}
+          </p>
+        )}
 
         <div className="mt-6">
           <ProductGrid

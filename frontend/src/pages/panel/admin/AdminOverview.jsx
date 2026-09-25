@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react';
-import { CalendarDays, Package, Receipt, ShoppingBag, Users, Wrench } from 'lucide-react';
+import {
+  CalendarDays,
+  MessageSquare,
+  MessageSquareWarning,
+  Package,
+  Receipt,
+  ShoppingBag,
+  Users,
+  Wrench,
+} from 'lucide-react';
 
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
@@ -37,7 +46,7 @@ const STATUS_LABELS = {
 };
 
 /**
- * Resumen del administrador: seis cards, gráfica de barras (artículos más
+ * Resumen del administrador: ocho cards (requisito 10), gráfica de barras (artículos más
  * vendidos), gráfica lineal (ventas en el tiempo) y la tabla de últimas
  * ventas, las tres últimas gobernadas por la misma barra de filtros
  * (requisito 13). Ningún número se calcula en el frontend: todo viene de
@@ -109,7 +118,7 @@ function AdminOverview() {
         <p className="text-sm text-muted-foreground">Resumen general de BeautyLux.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Users} label="Usuarios registrados" value={overview?.usersCount} />
         <StatCard icon={Package} label="Productos activos" value={overview?.productsCount} />
         <StatCard icon={Wrench} label="Servicios activos" value={overview?.servicesCount} />
@@ -120,6 +129,8 @@ function AdminOverview() {
           value={overview ? formatPrice(overview.invoicesTotal) : undefined}
         />
         <StatCard icon={CalendarDays} label="Citas de hoy" value={overview?.appointmentsToday} />
+        <StatCard icon={MessageSquare} label="PQR recibidas" value={overview?.pqrReceived} />
+        <StatCard icon={MessageSquareWarning} label="PQR pendientes" value={overview?.pqrPending} />
       </div>
 
       <DashboardFilters value={filters} onChange={setFilters} onClear={() => setFilters(EMPTY_FILTERS)} />
