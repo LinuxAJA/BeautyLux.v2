@@ -1,0 +1,19 @@
+# En .dockerignore un patrón sin `**/` solo aplica a la raíz del contexto.
+venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.pytest_cache/
+logs/
+**/*.log
+
+# Secretos: en Render las variables van en el panel y el ca.pem como secret file.
+.env
+.env.*
+!.env.example
+!.env.production.example
+**/*.pem
+
+postman/
+README.md
+.DS_Store

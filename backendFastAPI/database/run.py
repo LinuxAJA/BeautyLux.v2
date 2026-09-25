@@ -10,6 +10,11 @@ Uso:
 Nota: la base de datos `db_beautylux_v2` normalmente ya existe (la usa también el backend
 Node en paralelo). `schema`/`seed`/`reset` son destructivos: solo se ejecutan a propósito,
 no como parte de la puesta en marcha habitual del backend FastAPI.
+
+Producción (Aiven): con `DB_SSL_CA` apuntando al `ca.pem` la conexión va por TLS. Para una
+base nueva se corre `schema` y luego `seed`, una sola vez. `schema.sql` empieza con
+`DROP TABLE`, así que repetirlo sobre una base con datos los borra; `reset` además borra la
+base completa. `DB_NAME` debe ser `db_beautylux_v2`: los scripts hacen `USE` de ese nombre.
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ DB_PORT = int(os.getenv("DB_PORT", "3306"))
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "db_beautylux_v2")
+DB_SSL_CA = os.getenv("DB_SSL_CA", "")
 
 
 def _connect(with_database: bool = False) -> pymysql.connections.Connection:
@@ -46,6 +52,8 @@ def _connect(with_database: bool = False) -> pymysql.connections.Connection:
     )
     if with_database:
         kwargs["database"] = DB_NAME
+    if DB_SSL_CA:
+        kwargs["ssl"] = {"ca": DB_SSL_CA}
     return pymysql.connect(**kwargs)
 
 

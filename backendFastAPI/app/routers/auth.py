@@ -11,7 +11,7 @@ diferida, las anotaciones ya son objetos reales y ese problema no aparece."""
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
-from app.core.cookies import REFRESH_COOKIE_NAME, refresh_cookie_kwargs
+from app.core.cookies import REFRESH_COOKIE_NAME, clear_cookie_kwargs, refresh_cookie_kwargs
 from app.core.responses import created, ok
 from app.db.session import get_db
 from app.dependencies.auth import get_current_user
@@ -46,7 +46,7 @@ def _set_refresh_cookie(response, refresh: dict):
 
 
 def _clear_refresh_cookie(response):
-    response.delete_cookie(REFRESH_COOKIE_NAME, path="/api/auth")
+    response.delete_cookie(REFRESH_COOKIE_NAME, **clear_cookie_kwargs())
 
 
 @router.post("/register", summary="Registrar un nuevo cliente")

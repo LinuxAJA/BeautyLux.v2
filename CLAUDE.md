@@ -267,8 +267,8 @@ El plan completo está en `docs/PLAN_QUINTO_AVANCE.md`. La bitácora de lo hecho
 | 10 | `feat/dashboards-analitica` | Dashboards y gráficas | 10–13, 15 | ✅ mezclada |
 | 11 | `feat/modulo-pqr` | PQR | 16 | ✅ mezclada (squash, PR #11) |
 | 12 | `feat/chatbot-gemini` | Chatbot con IA | 17, 18, 19 | ✅ mezclada (squash, PR #12) |
-| 13 | `feat/verificacion-diseno` | Auditoría visual + historial de ventas | 3 | ⏳ PR pendiente |
-| 14 | `feat/preparacion-despliegue` | Docker, Render, Vercel | 20 | ⬜ siguiente |
+| 13 | `feat/verificacion-diseno` | Auditoría visual + historial de ventas | 3, 10 | ✅ mezclada (PR #13) |
+| 14 | `feat/preparacion-despliegue` | Docker, Render, Vercel | 20 | ⏳ PR pendiente |
 
 Los PR se mezclan con **squash and merge**: después del merge, borra la rama local con
 `git branch -D` (el `-d` avisa de "no mezclada" porque el squash crea un commit nuevo).
@@ -300,10 +300,22 @@ Cosas que ya mordieron una vez. No las repitas.
 - **Vite re-optimiza dependencias en caliente** la primera vez que una ruta importa un paquete
   nuevo (p. ej. `recharts`) y recarga la página: una prueba automatizada puede ver una página
   en blanco o un `goto` colgado. Repite la navegación antes de concluir que algo se rompió.
-- **La cookie de refresh está fija en `samesite="lax"`** (`app/core/cookies.py`). Con Vercel y
-  Render en dominios distintos hace falta `SameSite=None; Secure`, o el login parecerá funcionar
-  y el refresh fallará en silencio. Se resuelve en la etapa 14.
-- **`CORS_ORIGIN` admite un solo origen** (string). La etapa 14 lo convierte en lista.
+- **La cookie de refresh se configura con `COOKIE_SAMESITE` / `COOKIE_SECURE`** (`app/core/cookies.py`).
+  Local: `lax`. Producción (Vercel + Render, dominios distintos): `none` + `Secure`, o el login
+  parece funcionar y el refresh falla en silencio. Crear y **borrar** la cookie usan los mismos
+  atributos (`_policy_kwargs`): un `delete_cookie` con otros atributos lo descarta el navegador
+  entre dominios y el logout no limpia nada. `none` sin `Secure` impide arrancar.
+- **`CORS_ORIGIN` admite varios orígenes separados por coma** (`settings.cors_origins`).
+- **Producción:** `render.yaml` (raíz), `backendFastAPI/Dockerfile`, `frontend/vercel.json` y los
+  `.env.production.example`. MySQL de Aiven exige TLS: `DB_SSL_CA` apunta al `ca.pem` (en Render,
+  Secret File en `/etc/secrets/ca.pem`) y lo usan tanto `app/db/session.py` como `database/run.py`.
+  Uvicorn corre con `--proxy-headers`: sin eso, detrás del proxy de Render todos los visitantes
+  comparten IP y el rate limit del login bloquea a todos a la vez. Guía paso a paso en
+  `docs/GUIA_DESPLIEGUE.md`.
+- **En `.dockerignore` un patrón sin `**/` solo aplica a la raíz del contexto** (`__pycache__/`
+  no excluye `app/__pycache__/`).
+- **`.env*` se ignora en backend y frontend salvo `!.env*.example`.** Antes de este ajuste
+  `frontend/.env.example` nunca había llegado al repositorio.
 - **WhatsApp y el chatbot comparten la esquina en una torre vertical** (`chat/FloatingActions.jsx`,
   montada en `MainLayout`, `DashboardLayout` y `Auth`). `WhatsAppButton` ya no se posiciona
   solo. Al abrir el chat **la torre entera se oculta** — ningún botón debe quedar al lado ni

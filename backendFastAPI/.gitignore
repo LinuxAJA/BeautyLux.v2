@@ -1,5 +1,10 @@
 venv/
 .env
+# Cualquier variante con credenciales (.env.aiven, respaldos...); las plantillas sí se versionan.
+.env.*
+!.env*.example
+# Certificados (el ca.pem de Aiven va como Secret File en Render, nunca al repositorio).
+*.pem
 __pycache__/
 *.pyc
 *.pyo

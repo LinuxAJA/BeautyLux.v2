@@ -74,6 +74,11 @@ VITE_API_URL=http://localhost:8000/api   # FastAPI (Cuarto Avance) — por defec
 VITE_WHATSAPP_NUMBER=573001234567
 ```
 
+En producción (Vercel) las variables se definen en el panel del proyecto, con Root Directory
+`frontend`: ver `.env.production.example` y la sección **Despliegue** del
+[README raíz](../README.md). `vercel.json` hace el rewrite de la SPA para que recargar una
+ruta de React Router no dé 404.
+
 Ver [`../backendFastAPI/README.md`](../backendFastAPI/README.md) o
 [`../backend/README.md`](../backend/README.md) para levantar el backend elegido.
 
