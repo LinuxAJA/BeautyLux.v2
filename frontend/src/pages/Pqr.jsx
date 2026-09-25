@@ -271,7 +271,7 @@ function Pqr() {
 
       <section className="container-app py-14 lg:py-16">
         <Card className="mx-auto max-w-2xl p-6 sm:p-8">
-          <div className="mb-6 flex gap-1" role="tablist" aria-label="Secciones de PQR">
+          <div className="mb-6 flex flex-col gap-1 sm:flex-row" role="tablist" aria-label="Secciones de PQR">
             {TABS.map(({ value, label, icon: Icon }) => (
               <Button
                 key={value}

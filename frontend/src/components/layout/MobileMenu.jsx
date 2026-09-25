@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { LogOut, User, X } from 'lucide-react';
 
 import BrandLogo from '../ui/BrandLogo';
 import Button from '../ui/Button';
-import { mainNavLinks } from '../../data/navLinks';
+import { accountShortcuts, mainNavLinks } from '../../data/navLinks';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../utils/cn';
 
@@ -40,7 +40,7 @@ function MobileMenu({ isOpen, onClose, onLogout }) {
 
   return (
     <div
-      className={cn('fixed inset-0 z-60 md:hidden', isOpen ? 'visible' : 'invisible')}
+      className={cn('fixed inset-0 z-60 lg:hidden', isOpen ? 'visible' : 'invisible')}
       aria-hidden={!isOpen}
     >
       <div
@@ -95,6 +95,18 @@ function MobileMenu({ isOpen, onClose, onLogout }) {
               <Button variant="outline" fullWidth onClick={() => navigate('/panel')}>
                 Mi panel
               </Button>
+              <ul className="grid gap-1" aria-label="Atajos de tu cuenta">
+                {(accountShortcuts[user.role.name] ?? []).map(({ label, to }) => (
+                  <li key={to}>
+                    <Link
+                      to={to}
+                      className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 smooth-transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
               <Button variant="outline" fullWidth onClick={onLogout}>
                 <LogOut />
                 Cerrar sesión

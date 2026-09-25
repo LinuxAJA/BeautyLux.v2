@@ -62,6 +62,9 @@
   --gradient-gold: linear-gradient(135deg, hsl(45 95% 70%), hsl(25 80% 75%));
   --gradient-sunset: linear-gradient(135deg, hsl(350 65% 85%), hsl(340 75% 65%), hsl(25 80% 75%));
   --gradient-subtle: linear-gradient(180deg, hsl(350 20% 98%), hsl(350 15% 95%));
+  /* Palabra resaltada de PageHero: más profunda que `--gradient-primary`,
+     que sobre `hero-gradient` coincide con su propio tono medio y se pierde. */
+  --gradient-hero-text: linear-gradient(135deg, hsl(341 65% 45%), hsl(335 70% 36%));
 
   /* Transiciones */
   --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -94,7 +97,29 @@
   --input: hsl(340 20% 15%);
   --ring: hsl(340 75% 65%);
 
+  --primary-glow: hsl(345 70% 60%);
+
+  /* Estados: un poco más claros que en `:root` para mantener el contraste
+     del texto `text-destructive` / `text-success` sobre fondo oscuro. */
+  --destructive: hsl(0 75% 65%);
+  --destructive-foreground: hsl(350 20% 98%);
+  --success: hsl(150 55% 50%);
+  --success-foreground: hsl(340 25% 8%);
+
+  /* Paleta de belleza: en claro son fondos pastel bajo texto oscuro; en
+     oscuro pasan a tonos profundos para que el texto claro siga legible. */
+  --blush: hsl(345 35% 22%);
+  --champagne: hsl(40 25% 20%);
+  --rose-gold: hsl(25 55% 55%);
+  --nude: hsl(25 15% 25%);
+
+  /* Los degradados de `:root` llevan los colores escritos a mano, así que
+     no heredan los overrides de arriba: se redefinen aquí para que el hero,
+     la franja superior y los badges dorados no queden claros bajo texto claro. */
+  --gradient-gold: linear-gradient(135deg, hsl(45 60% 35%), hsl(25 50% 38%));
+  --gradient-sunset: linear-gradient(135deg, hsl(345 35% 22%), hsl(340 55% 38%), hsl(25 45% 32%));
   --gradient-subtle: linear-gradient(180deg, hsl(340 25% 8%), hsl(340 20% 12%));
+  --gradient-hero-text: linear-gradient(135deg, hsl(345 80% 82%), hsl(340 75% 74%));
 }
 
 /* ------------------------------------------------------------------
@@ -209,6 +234,13 @@
 
 @utility text-gradient {
   background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility text-gradient-hero {
+  background: var(--gradient-hero-text);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

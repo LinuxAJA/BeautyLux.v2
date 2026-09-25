@@ -202,8 +202,14 @@ Fuentes: `--font-sans: 'Inter'`, `--font-serif: 'Playfair Display'`. Se cargan p
 Google Fonts en la línea 1 de `index.css`, no desde el `index.html`.
 
 Utilidades propias (`@utility`, no `@layer components`): `container-app`, `hero-gradient`,
-`primary-gradient`, `gold-gradient`, `subtle-gradient`, `text-gradient`, `text-gradient-gold`,
-`smooth-transition`, `bounce-transition`, `label-caps`.
+`primary-gradient`, `gold-gradient`, `subtle-gradient`, `text-gradient`, `text-gradient-hero`
+(palabra resaltada de `PageHero`), `text-gradient-gold`, `smooth-transition`,
+`bounce-transition`, `label-caps`.
+
+**Modo oscuro:** `.dark` redefine todos los tokens de color, incluidos la paleta de belleza y
+los degradados (`--gradient-sunset`, `--gradient-gold`, `--gradient-hero-text`), que en `:root`
+llevan los colores escritos a mano. Si añades un degradado, dale también su valor en `.dark`.
+Hoy ningún control activa la clase `.dark`: los overrides dejan la paleta lista para cuando exista.
 
 **Logo:** `frontend/src/components/ui/BrandLogo.jsx` es la **única** fuente. Props `variant`
 (`full` | `mark`), `size` (`sm` | `md` | `lg`), `withClaim`. No vuelvas a dibujar el logo a mano
@@ -249,20 +255,23 @@ El plan completo está en `docs/PLAN_QUINTO_AVANCE.md`. La bitácora de lo hecho
 
 | # | Rama | Entrega | Reqs. PDF | Estado |
 |---|---|---|---|---|
-| 1 | `feat/sistema-diseno-marca` | Logo, favicon, tokens, footer | — | ✅ mezclada (PR #1) |
-| 2 | `feat/catalogo-servicios` | Página pública `/servicios` | — | ✅ empujada, PR pendiente |
-| 3 | `feat/carrito-bolsa` | Carrito "Tu bolsa" | — | ⏳ siguiente |
-| 4 | `feat/ventas-backend` | Tablas + API de ventas | 1, 2, 3, 14 | ⬜ |
-| 5 | `feat/agenda-citas` | Disponibilidad y citas | — | ⬜ |
-| 6 | `feat/checkout-confirmacion` | Checkout + confirmación | 1, 2 | ⬜ |
-| 7 | `feat/facturacion` | Facturas + PDF | 7, 8, 9 | ⬜ |
-| 8 | `feat/reportes-ventas` | Reporte diario PDF + Excel | 4, 5, 6 | ⬜ |
-| 9 | `feat/pos` | Punto de venta presencial | 1, 2 | ⬜ |
-| 10 | `feat/dashboards-analitica` | Dashboards y gráficas | 10–13, 15 | ⬜ |
-| 11 | `feat/modulo-pqr` | PQR | 16 | ⬜ |
-| 12 | `feat/chatbot-gemini` | Chatbot con IA | 17, 18, 19 | ⬜ |
-| 13 | `feat/verificacion-diseno` | Auditoría visual | — | ⬜ |
-| 14 | `feat/preparacion-despliegue` | Docker, Render, Vercel | 20 | ⬜ |
+| 1 | `feat/sistema-diseno-marca` | Logo, favicon, tokens, footer | — | ✅ mezclada |
+| 2 | `feat/catalogo-servicios` | Página pública `/servicios` | — | ✅ mezclada |
+| 3 | `feat/carrito-bolsa` | Carrito "Tu bolsa" | — | ✅ mezclada |
+| 4 | `feat/ventas-backend` | Tablas + API de ventas | 1, 2, 3, 14 | ✅ mezclada |
+| 5 | `feat/agenda-citas` | Disponibilidad y citas | — | ✅ mezclada |
+| 6 | `feat/checkout-confirmacion` | Checkout + confirmación | 1, 2 | ✅ mezclada |
+| 7 | `feat/facturacion` | Facturas + PDF | 7, 8, 9 | ✅ mezclada |
+| 8 | `feat/reportes-ventas` | Reporte diario PDF + Excel | 4, 5, 6 | ✅ mezclada |
+| 9 | `feat/pos` | Punto de venta presencial | 1, 2 | ✅ mezclada |
+| 10 | `feat/dashboards-analitica` | Dashboards y gráficas | 10–13, 15 | ✅ mezclada |
+| 11 | `feat/modulo-pqr` | PQR | 16 | ✅ mezclada (squash, PR #11) |
+| 12 | `feat/chatbot-gemini` | Chatbot con IA | 17, 18, 19 | ✅ mezclada (squash, PR #12) |
+| 13 | `feat/verificacion-diseno` | Auditoría visual + historial de ventas | 3 | ⏳ PR pendiente |
+| 14 | `feat/preparacion-despliegue` | Docker, Render, Vercel | 20 | ⬜ siguiente |
+
+Los PR se mezclan con **squash and merge**: después del merge, borra la rama local con
+`git branch -D` (el `-d` avisa de "no mezclada" porque el squash crea un commit nuevo).
 
 ---
 
@@ -276,17 +285,29 @@ Cosas que ya mordieron una vez. No las repitas.
   del frontend. Borrarla deja el catálogo entero sin imágenes. `src/assets/images/` es distinto:
   son las imágenes del contenido estático, importadas como módulos para que Vite las procese.
   Hay un `README.md` en la carpeta que lo explica.
-- **`src/services/api.js` no sabe descargar binarios.** Solo hace `JSON.stringify` y
-  `response.json()`. Los PDF y Excel de las etapas 7 y 8 necesitan añadirle un `downloadRequest()`
-  que devuelva un `blob`. Tampoco soporta `FormData`, `AbortController` ni timeouts.
+- **`src/services/api.js`: JSON con `apiRequest()`, binarios con `downloadRequest()`**
+  (devuelve `{blob, filename}`; `utils/download.js` lo guarda). No soporta `FormData`,
+  `AbortController` ni timeouts.
+- **`@limiter.limit(...)` de slowapi no convive con `from __future__ import annotations`.**
+  El wrapper hace que FastAPI no resuelva el tipo del body: lo toma como query param y
+  `/openapi.json` responde 500. Un router con endpoints limitados (`auth.py`, `chat.py`) va
+  **sin** esa importación; el resto de módulos sí la llevan.
+- **El Header muestra la navegación completa desde `lg`, no desde `md`.** Con 6 enlaces más el
+  menú de usuario, en 768 px se desborda 158 px. Si añades un enlace a `mainNavLinks`, prueba
+  768 y 1024 px.
+- **La torre de `FloatingActions` tapa lo que quede en la esquina inferior derecha.** En
+  layouts de altura fija (el POS en `lg`) reserva `pr-14` para que no cubra botones de acción.
+- **Vite re-optimiza dependencias en caliente** la primera vez que una ruta importa un paquete
+  nuevo (p. ej. `recharts`) y recarga la página: una prueba automatizada puede ver una página
+  en blanco o un `goto` colgado. Repite la navegación antes de concluir que algo se rompió.
 - **La cookie de refresh está fija en `samesite="lax"`** (`app/core/cookies.py`). Con Vercel y
   Render en dominios distintos hace falta `SameSite=None; Secure`, o el login parecerá funcionar
   y el refresh fallará en silencio. Se resuelve en la etapa 14.
 - **`CORS_ORIGIN` admite un solo origen** (string). La etapa 14 lo convierte en lista.
-- **El botón de WhatsApp ocupa `fixed bottom-5 right-5 z-50`** y se monta 3 veces (`MainLayout`,
-  `DashboardLayout`, `Auth`). El chatbot de la etapa 12 comparte esa esquina: van en **torre
-  vertical**, y al abrir el panel del chat **la torre entera se oculta** — ningún botón debe
-  quedar al lado ni detrás del panel. El panel lleva su propia X y al cerrarla la torre vuelve.
+- **WhatsApp y el chatbot comparten la esquina en una torre vertical** (`chat/FloatingActions.jsx`,
+  montada en `MainLayout`, `DashboardLayout` y `Auth`). `WhatsAppButton` ya no se posiciona
+  solo. Al abrir el chat **la torre entera se oculta** — ningún botón debe quedar al lado ni
+  detrás del panel. El panel lleva su propia X (y Escape); al cerrarlo la torre vuelve.
 - **`src/data/products.js` y `categories.js` están casi muertos**: los arrays ya no se usan
   (todo viene de la API), pero `formatPrice` sí se importa desde ahí en varios sitios. No borres
   el archivo sin mover esa función.

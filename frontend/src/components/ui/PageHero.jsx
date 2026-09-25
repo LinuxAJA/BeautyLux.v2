@@ -23,7 +23,7 @@ function PageHero({ eyebrow, title, highlight, subtitle }) {
         </nav>
 
         <h1 className="font-serif text-4xl font-semibold sm:text-5xl">
-          {title} {highlight && <span className="text-gradient">{highlight}</span>}
+          {title} {highlight && <span className="text-gradient-hero">{highlight}</span>}
         </h1>
 
         {subtitle && (

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Package, ShoppingBag, Sparkles, X } from 'lucide-react';
 
@@ -41,6 +41,7 @@ function CartDrawer() {
   const { items, productItems, serviceItems, itemCount, subtotal, isOpen, close } = useCart();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const dialogRef = useRef(null);
 
   // Se cierra al navegar a otra ruta, igual que el menú móvil.
   useEffect(() => {
@@ -58,9 +59,15 @@ function CartDrawer() {
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKeyDown);
 
+    // Lleva el foco al panel para que el teclado y el lector de pantalla
+    // entren al diálogo, y al cerrar lo devuelve al botón que lo abrió.
+    const previouslyFocused = document.activeElement;
+    dialogRef.current?.focus();
+
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus?.();
     };
   }, [isOpen, close]);
 
@@ -77,11 +84,13 @@ function CartDrawer() {
       />
 
       <aside
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Tu bolsa de compras"
         className={cn(
-          'absolute inset-y-0 right-0 flex w-104 max-w-[90vw] flex-col bg-background shadow-elegant smooth-transition',
+          'absolute inset-y-0 right-0 flex w-104 max-w-[90vw] flex-col bg-background shadow-elegant smooth-transition focus:outline-none',
           isOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >

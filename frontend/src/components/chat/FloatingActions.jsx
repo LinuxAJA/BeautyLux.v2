@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 
 import ChatWidget from './ChatWidget';
@@ -15,6 +15,18 @@ import WhatsAppButton from '../common/WhatsAppButton';
  */
 function FloatingActions() {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const chatButtonRef = useRef(null);
+  const hasOpenedRef = useRef(false);
+
+  // La torre se desmonta mientras el chat está abierto, así que al cerrarlo
+  // el foco se devuelve a mano al FAB recién montado.
+  useEffect(() => {
+    if (isChatOpen) {
+      hasOpenedRef.current = true;
+    } else if (hasOpenedRef.current) {
+      chatButtonRef.current?.focus();
+    }
+  }, [isChatOpen]);
 
   if (isChatOpen) {
     return <ChatWidget onClose={() => setIsChatOpen(false)} />;
@@ -23,6 +35,7 @@ function FloatingActions() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       <button
+        ref={chatButtonRef}
         type="button"
         onClick={() => setIsChatOpen(true)}
         aria-label="Abrir el chat de BeautyLux"
