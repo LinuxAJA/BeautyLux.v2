@@ -9,7 +9,8 @@
 #   - Completar las variables marcadas `sync: false`: Render las pide al crear
 #     el Blueprint y nunca se versionan.
 # Paso a paso completo: docs/GUIA_DESPLIEGUE.md (fuera del repositorio).
-previewsEnabled: true
+previews:
+  generation: automatic
 
 services:
   - type: web
