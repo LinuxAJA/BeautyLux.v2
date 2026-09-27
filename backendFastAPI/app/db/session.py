@@ -10,6 +10,7 @@ la decisión tomada en el plan, punto 9 del contrato de la API).
 
 from __future__ import annotations
 
+import os
 from collections.abc import Generator
 
 from sqlalchemy import URL, create_engine, text
@@ -31,6 +32,15 @@ DATABASE_URL = URL.create(
 
 # Aiven (producción) solo acepta conexiones TLS verificadas contra su CA;
 # en local DB_SSL_CA queda vacía y la conexión no cambia.
+# Si la ruta no existe, PyMySQL falla dentro del lifespan con un FileNotFoundError
+# que no dice qué archivo buscaba: mejor detenerse aquí con un mensaje claro.
+if settings.DB_SSL_CA and not os.path.exists(settings.DB_SSL_CA):
+    raise RuntimeError(
+        f"DB_SSL_CA apunta a '{settings.DB_SSL_CA}', pero ese archivo no existe. "
+        "En Render, sube el certificado CA de Aiven en Environment > Secret Files "
+        "con el nombre exacto 'ca.pem'. En local, deja DB_SSL_CA vacía."
+    )
+
 connect_args = {"ssl": {"ca": settings.DB_SSL_CA}} if settings.DB_SSL_CA else {}
 
 engine = create_engine(
