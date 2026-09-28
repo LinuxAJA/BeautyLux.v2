@@ -73,7 +73,9 @@ function DashboardLayout() {
           </Button>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        {/* El padding inferior extra deja que el final de cada página (p. ej.
+            la paginación) suba por encima de la torre de FloatingActions. */}
+        <main className="flex-1 px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8">
           <Outlet />
         </main>
       </div>

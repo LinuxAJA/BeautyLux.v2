@@ -8,6 +8,7 @@ import DataTable from './DataTable';
 import RescheduleModal from './RescheduleModal';
 import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
+import usePagination from '../../hooks/usePagination';
 import * as appointmentsService from '../../services/appointments.service';
 import { formatDuration } from '../../utils/duration';
 
@@ -35,16 +36,19 @@ function AppointmentsManager({ canManageStatus = true }) {
   const [actionError, setActionError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
-  const { data, isLoading, error, refetch } = useApi(
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error, refetch } = useApi(
     () =>
       appointmentsService.listAppointments({
         search,
         status,
-        perPage: 50,
+        page,
+        perPage: 10,
         orderBy: 'scheduledDate',
         orderDir: 'asc',
       }),
-    [search, status],
+    [search, status, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -173,12 +177,15 @@ function AppointmentsManager({ canManageStatus = true }) {
       />
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="citas"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por cita, cliente o servicio..."
         emptyMessage="No hay citas para mostrar."
         toolbar={
@@ -189,7 +196,7 @@ function AppointmentsManager({ canManageStatus = true }) {
                 variant={status === filter.value ? 'gradient' : 'outline'}
                 size="sm"
                 aria-pressed={status === filter.value}
-                onClick={() => setStatus(filter.value)}
+                onClick={() => withReset(setStatus)(filter.value)}
               >
                 {filter.label}
               </Button>

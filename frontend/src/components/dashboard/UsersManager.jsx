@@ -8,6 +8,7 @@ import StatusBadge from './StatusBadge';
 import UserFormModal from './UserFormModal';
 import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
+import usePagination from '../../hooks/usePagination';
 import * as usersService from '../../services/users.service';
 
 /**
@@ -22,9 +23,11 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
   const [actionError, setActionError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
-  const { data, isLoading, error, refetch } = useApi(
-    () => usersService.listUsers({ search, role: roleFilter, perPage: 50 }),
-    [search, roleFilter],
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error, refetch } = useApi(
+    () => usersService.listUsers({ search, role: roleFilter, page, perPage: 10 }),
+    [search, roleFilter, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -123,12 +126,15 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
       />
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="usuarios"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por nombre, correo o documento..."
         emptyMessage="No hay usuarios para mostrar."
       />
