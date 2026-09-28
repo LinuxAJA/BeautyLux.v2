@@ -9,6 +9,7 @@ import PanelAccount from './PanelAccount';
 import PanelMobileMenu from './PanelMobileMenu';
 import PanelNav from './PanelNav';
 import { useAuth } from '../../hooks/useAuth';
+import usePanelNavSections from '../../hooks/usePanelNavSections';
 import useScrollTop from '../../hooks/useScrollTop';
 import { panelNavByRole } from '../../data/panelNav';
 
@@ -28,6 +29,8 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const sections = panelNavByRole[user.role.name] ?? [];
+  const { isOpen, toggle, activeLabel } = usePanelNavSections(sections, user.role.name);
+  const navProps = { sections, isOpen, onToggle: toggle, activeLabel };
 
   const closeMenu = useCallback(() => setIsMenuOpen(false), []);
 
@@ -51,7 +54,7 @@ function DashboardLayout() {
     <div className="flex min-h-screen bg-muted/40">
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
         <div className="border-b border-border px-5 py-4">{homeLink}</div>
-        <PanelNav sections={sections} className="flex-1 overflow-y-auto p-3" />
+        <PanelNav {...navProps} className="flex-1 overflow-y-auto p-3" />
         <PanelAccount user={user} onLogout={handleLogout} />
       </aside>
 
@@ -79,7 +82,7 @@ function DashboardLayout() {
         id={MOBILE_MENU_ID}
         isOpen={isMenuOpen}
         onClose={closeMenu}
-        sections={sections}
+        navProps={navProps}
         user={user}
         onLogout={handleLogout}
       />
