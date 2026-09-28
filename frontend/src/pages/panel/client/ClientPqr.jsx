@@ -5,6 +5,7 @@ import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
 import DataTable from '../../../components/dashboard/DataTable';
 import PqrStatusBadge from '../../../components/dashboard/PqrStatusBadge';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
 import * as pqrService from '../../../services/pqr.service';
 import { pqrTypes } from '../../../data/documentTypes';
@@ -52,7 +53,10 @@ function ClientPqr() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Mis PQR</h1>
+      <PageHeader
+        title="Mis PQR"
+        description="Tus peticiones, quejas y reclamos, y sus respuestas."
+      />
 
       <DataTable
         columns={columns}

@@ -6,6 +6,7 @@ import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import StatusBadge from './StatusBadge';
 import UserFormModal from './UserFormModal';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as usersService from '../../services/users.service';
 
@@ -109,15 +110,17 @@ function UsersManager({ roleFilter, canCreate = true, canDelete = true, canChang
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold">{title}</h1>
-        {canCreate && (
-          <Button variant="gradient" onClick={() => setModalUser(null)}>
-            <Plus />
-            Agregar usuario
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={title}
+        actions={
+          canCreate && (
+            <Button variant="gradient" onClick={() => setModalUser(null)}>
+              <Plus />
+              Agregar usuario
+            </Button>
+          )
+        }
+      />
 
       <DataTable
         columns={columns}

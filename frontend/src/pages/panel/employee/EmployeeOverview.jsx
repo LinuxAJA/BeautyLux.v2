@@ -1,7 +1,9 @@
-import { Link } from 'react-router';
-import { ArrowRight, CalendarClock, MessageSquare, Package, ShoppingCart, Users, Wrench } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Banknote, CalendarClock, MessageSquare, ShoppingCart } from 'lucide-react';
 
+import Button from '../../../components/ui/Button';
 import ChartCard from '../../../components/dashboard/ChartCard';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import StatCard from '../../../components/dashboard/StatCard';
 import SalesLineChart from '../../../components/dashboard/SalesLineChart';
 import { useApi } from '../../../hooks/useApi';
@@ -9,16 +11,15 @@ import { useAuth } from '../../../hooks/useAuth';
 import * as statsService from '../../../services/stats.service';
 import { formatPrice } from '../../../data/products';
 
-const QUICK_LINKS = [
-  { to: '/panel/empleado/pos', label: 'Punto de venta', icon: ShoppingCart },
-  { to: '/panel/empleado/clientes', label: 'Ver clientes', icon: Users },
-  { to: '/panel/empleado/productos', label: 'Gestionar productos', icon: Package },
-  { to: '/panel/empleado/servicios', label: 'Gestionar servicios', icon: Wrench },
-];
-
+/**
+ * Resumen del empleado: la jornada de hoy y las ventas del mostrador. Los
+ * accesos a cada módulo están en la barra lateral; aquí solo queda el punto
+ * de venta como acción principal, que es lo que más se usa en el día.
+ */
 function EmployeeOverview() {
   const { user } = useAuth();
-  const { data: summary } = useApi(() => statsService.getEmployeeSummary(), []);
+  const navigate = useNavigate();
+  const { data: summary, isLoading: isLoadingSummary } = useApi(() => statsService.getEmployeeSummary(), []);
   const { data: series, isLoading: isLoadingSeries } = useApi(
     () => statsService.getSalesSeries({ groupBy: 'day', channel: 'pos' }),
     [],
@@ -26,49 +27,38 @@ function EmployeeOverview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-2xl font-semibold">Hola, {user.firstName}</h1>
-        <p className="text-sm text-muted-foreground">
-          Desde aquí puedes consultar y editar clientes, y gestionar el catálogo de productos y servicios.
-          Los cambios de estado, la eliminación de cuentas y la bitácora son exclusivos del administrador.
-        </p>
-      </div>
+      <PageHeader
+        title={`Hola, ${user.firstName}`}
+        description="Tu jornada de hoy en BeautyLux."
+        actions={
+          <Button variant="gradient" onClick={() => navigate('/panel/empleado/pos')}>
+            <ShoppingCart />
+            Abrir punto de venta
+          </Button>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={ShoppingCart} label="Ventas de hoy" value={summary?.salesTodayCount} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={ShoppingCart} label="Ventas de hoy" value={summary?.salesTodayCount} isLoading={isLoadingSummary} />
         <StatCard
-          icon={ShoppingCart}
+          icon={Banknote}
           label="Ingresos de hoy"
           value={summary ? formatPrice(summary.salesTodayTotal) : undefined}
+          isLoading={isLoadingSummary}
         />
-        <StatCard icon={CalendarClock} label="Citas de hoy" value={summary?.appointmentsToday} />
-        <StatCard icon={MessageSquare} label="PQR asignadas" value={summary?.pqrAssigned} />
+        <StatCard icon={CalendarClock} label="Citas de hoy" value={summary?.appointmentsToday} isLoading={isLoadingSummary} />
+        <StatCard icon={MessageSquare} label="PQR asignadas" value={summary?.pqrAssigned} isLoading={isLoadingSummary} />
       </div>
 
       <ChartCard
         title="Ventas del mostrador"
         subtitle="Punto de venta, por día."
-        isEmpty={!isLoadingSeries && (series ?? []).length === 0}
+        isLoading={isLoadingSeries}
+        isEmpty={(series ?? []).length === 0}
         emptyMessage="Todavía no hay ventas registradas en el punto de venta."
       >
-        {!isLoadingSeries && (series ?? []).length > 0 && <SalesLineChart data={series} />}
+        <SalesLineChart data={series} />
       </ChartCard>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {QUICK_LINKS.map(({ to, label, icon: Icon }) => (
-          <Link
-            key={to}
-            to={to}
-            className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-sm font-medium text-foreground/80 shadow-card smooth-transition hover:border-primary/40 hover:text-primary"
-          >
-            <span className="flex items-center gap-2.5">
-              <Icon className="size-4 text-primary" aria-hidden="true" />
-              {label}
-            </span>
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }

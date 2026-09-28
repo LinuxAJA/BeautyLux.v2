@@ -8,6 +8,7 @@ import Input from '../ui/Input';
 import DashboardFilters from './DashboardFilters';
 import DataTable from './DataTable';
 import SaleStatusModal from './SaleStatusModal';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as salesService from '../../services/sales.service';
 import { formatPrice } from '../../data/products';
@@ -120,7 +121,10 @@ function SalesManager() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Historial de ventas</h1>
+      <PageHeader
+        title="Historial de ventas"
+        description="Ventas en línea y del mostrador. Marca como pagadas las ventas en línea para emitir su factura."
+      />
 
       {notice && (
         <p aria-live="polite" className="rounded-lg bg-blush/40 p-3 text-sm text-foreground">

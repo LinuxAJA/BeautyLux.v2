@@ -4,6 +4,7 @@ import { Download } from 'lucide-react';
 import Button from '../ui/Button';
 import DataTable from './DataTable';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as invoicesService from '../../services/invoices.service';
 import { formatPrice } from '../../data/products';
@@ -71,7 +72,10 @@ function InvoicesManager() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Facturación</h1>
+      <PageHeader
+        title="Facturación"
+        description="Facturas emitidas. Se generan solas al marcar una venta como pagada."
+      />
 
       {downloadError && (
         <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">

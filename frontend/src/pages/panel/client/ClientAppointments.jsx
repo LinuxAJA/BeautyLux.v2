@@ -6,6 +6,7 @@ import AppointmentStatusBadge from '../../../components/dashboard/AppointmentSta
 import ConfirmDialog from '../../../components/dashboard/ConfirmDialog';
 import DataTable from '../../../components/dashboard/DataTable';
 import RescheduleModal from '../../../components/dashboard/RescheduleModal';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
 import * as appointmentsService from '../../../services/appointments.service';
 import { formatDuration } from '../../../utils/duration';
@@ -106,7 +107,10 @@ function ClientAppointments() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Mis citas</h1>
+      <PageHeader
+        title="Mis citas"
+        description="Tus citas agendadas y su estado."
+      />
 
       <DataTable
         columns={columns}

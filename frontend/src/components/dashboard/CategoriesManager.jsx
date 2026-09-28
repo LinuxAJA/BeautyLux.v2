@@ -6,6 +6,7 @@ import Badge from '../ui/Badge';
 import CategoryFormModal from './CategoryFormModal';
 import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as categoriesService from '../../services/categories.service';
 
@@ -68,13 +69,16 @@ function CategoriesManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold">Categorías</h1>
-        <Button variant="gradient" onClick={() => setModalCategory(null)}>
-          <Plus />
-          Agregar categoría
-        </Button>
-      </div>
+      <PageHeader
+        title="Categorías"
+        description="Categorías de productos y servicios del catálogo."
+        actions={
+          <Button variant="gradient" onClick={() => setModalCategory(null)}>
+            <Plus />
+            Agregar categoría
+          </Button>
+        }
+      />
 
       <DataTable columns={columns} rows={data ?? []} isLoading={isLoading} error={error} emptyMessage="No hay categorías." />
 

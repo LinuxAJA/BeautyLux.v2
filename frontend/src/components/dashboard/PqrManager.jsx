@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import DataTable from './DataTable';
 import PqrResponseModal from './PqrResponseModal';
 import PqrStatusBadge from './PqrStatusBadge';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as pqrService from '../../services/pqr.service';
 import { pqrTypes } from '../../data/documentTypes';
@@ -84,7 +85,10 @@ function PqrManager() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Peticiones, quejas y reclamos</h1>
+      <PageHeader
+        title="Peticiones, quejas y reclamos"
+        description="Solicitudes de los clientes: responde y cambia su estado."
+      />
 
       <DataTable
         columns={columns}

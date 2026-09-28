@@ -6,6 +6,7 @@ import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import ProductFormModal from './ProductFormModal';
 import StatusBadge from './StatusBadge';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as productsService from '../../services/products.service';
 import { formatPrice } from '../../data/products';
@@ -103,13 +104,16 @@ function ProductsManager({ canDelete = true }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold">Productos</h1>
-        <Button variant="gradient" onClick={() => setModalProduct(null)}>
-          <Plus />
-          Agregar producto
-        </Button>
-      </div>
+      <PageHeader
+        title="Productos"
+        description="Catálogo de productos, precios e inventario."
+        actions={
+          <Button variant="gradient" onClick={() => setModalProduct(null)}>
+            <Plus />
+            Agregar producto
+          </Button>
+        }
+      />
 
       <DataTable
         columns={columns}

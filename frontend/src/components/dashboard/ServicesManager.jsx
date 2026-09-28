@@ -6,6 +6,7 @@ import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import ServiceFormModal from './ServiceFormModal';
 import StatusBadge from './StatusBadge';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as servicesService from '../../services/services.service';
 import { formatPrice } from '../../data/products';
@@ -102,13 +103,16 @@ function ServicesManager({ canDelete = true }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold">Servicios</h1>
-        <Button variant="gradient" onClick={() => setModalService(null)}>
-          <Plus />
-          Agregar servicio
-        </Button>
-      </div>
+      <PageHeader
+        title="Servicios"
+        description="Servicios de belleza, precios y duración."
+        actions={
+          <Button variant="gradient" onClick={() => setModalService(null)}>
+            <Plus />
+            Agregar servicio
+          </Button>
+        }
+      />
 
       <DataTable
         columns={columns}

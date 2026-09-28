@@ -6,6 +6,7 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DataTable from '../../../components/dashboard/DataTable';
 import InvoiceDownloadButton from '../../../components/common/InvoiceDownloadButton';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
 import * as salesService from '../../../services/sales.service';
 import { formatPrice } from '../../../data/products';
@@ -74,7 +75,10 @@ function ClientOrders() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Mis pedidos</h1>
+      <PageHeader
+        title="Mis pedidos"
+        description="Tus compras y el estado de cada una."
+      />
 
       <DataTable
         columns={columns}
