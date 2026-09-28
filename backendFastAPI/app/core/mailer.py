@@ -24,10 +24,12 @@ import ssl
 import time
 from dataclasses import dataclass, field
 from email.message import EmailMessage
+from functools import lru_cache
 from email.utils import formatdate, make_msgid, parseaddr
 from typing import Literal
 
 from app.core.config import settings
+from app.core.email_templates import LOGO_CID, LOGO_PATH
 from app.core.logger import logger
 
 DeliveryStatus = Literal["sent", "failed", "skipped"]
@@ -123,6 +125,15 @@ def _build_message(email: OutgoingEmail) -> EmailMessage:
 
     message.set_content(email.text)
     message.add_alternative(email.html, subtype="html")
+    # El logo va dentro del correo (multipart/related) y no como enlace
+    # remoto: se ve aunque el cliente bloquee imágenes externas. Tiene que
+    # añadirse antes que los adjuntos, que convierten el mensaje en `mixed`.
+    if f"cid:{LOGO_CID}" in email.html:
+        html_part = message.get_payload()[1]
+        html_part.add_related(
+            _logo_bytes(), maintype="image", subtype="png",
+            cid=f"<{LOGO_CID}>", filename="beautylux-logo.png", disposition="inline",
+        )
     for attachment in email.attachments:
         maintype, _, subtype = attachment.mime.partition("/")
         message.add_attachment(
@@ -137,6 +148,11 @@ def _tls_context() -> ssl.SSLContext:
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
     return context
+
+
+@lru_cache(maxsize=1)
+def _logo_bytes() -> bytes:
+    return LOGO_PATH.read_bytes()
 
 
 def _send(message: EmailMessage) -> None:

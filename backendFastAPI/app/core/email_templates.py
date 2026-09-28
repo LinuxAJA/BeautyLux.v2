@@ -8,8 +8,11 @@ Reglas de maquetación, porque los clientes de correo no son navegadores:
   CSS y `linear-gradient`, así que los colores de marca van escritos en hex
   (los mismos tokens de `frontend/src/index.css`). La regla de "sin hex
   sueltos" aplica al frontend; aquí no hay alternativa.
-- El isotipo es un PNG servido por el frontend (`/email/logo.png`): Gmail
-  no pinta SVG. Si el cliente bloquea imágenes, el logotipo en texto basta.
+- El isotipo es un PNG **incrustado en el propio correo** (`cid:`), no un
+  enlace: una URL al frontend fallaba si `FRONTEND_URL` apuntaba a un
+  preview protegido de Vercel o a localhost, y los clientes bloquean las
+  imágenes remotas por defecto. `mailer.py` adjunta el PNG como parte
+  `multipart/related` cuando el HTML lo referencia. Gmail no pinta SVG.
 - **Todo valor que llega de fuera pasa por `_esc()`**: nombres, asuntos y
   respuestas de PQR son texto libre, y el formulario de PQR es público.
 """
@@ -18,10 +21,16 @@ from __future__ import annotations
 
 from datetime import datetime
 from html import escape
+from pathlib import Path
 from typing import NamedTuple
 
 from app.core.config import settings
 from app.core.formatting import format_cop, format_date_long, format_time
+
+# Isotipo incrustado: el HTML lo referencia como `cid:beautylux-logo` y el
+# mailer adjunta este archivo con ese Content-ID.
+LOGO_CID = "beautylux-logo"
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "email" / "logo.png"
 
 _BRAND = "#E9638F"
 _BRAND_DARK = "#D84A76"
@@ -56,7 +65,7 @@ def _wrap(*, title: str, preheader: str, body_html: str) -> str:
     negocio. `title` y `preheader` se escapan aquí; `body_html` ya viene
     armado con los helpers de abajo."""
     site = _esc(_site_url())
-    logo = _esc(_site_url("/email/logo.png"))
+    logo = f"cid:{LOGO_CID}"
     return f"""<!DOCTYPE html>
 <html lang="es">
 <head>
