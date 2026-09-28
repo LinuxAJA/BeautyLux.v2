@@ -14,7 +14,7 @@ import { cn } from '../../utils/cn';
  * (cierre con Escape, al tocar el fondo y al navegar, y scroll de fondo
  * bloqueado mientras está abierto).
  */
-function PanelMobileMenu({ id, isOpen, onClose, sections, user, onLogout }) {
+function PanelMobileMenu({ id, isOpen, onClose, navProps, user, onLogout }) {
   const { pathname } = useLocation();
   const closeButtonRef = useRef(null);
 
@@ -78,7 +78,7 @@ function PanelMobileMenu({ id, isOpen, onClose, sections, user, onLogout }) {
           </Button>
         </div>
 
-        <PanelNav sections={sections} className="flex-1 overflow-y-auto p-3" />
+        <PanelNav {...navProps} className="flex-1 overflow-y-auto p-3" />
         <PanelAccount user={user} onLogout={onLogout} />
       </aside>
     </div>
