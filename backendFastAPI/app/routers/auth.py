@@ -23,6 +23,7 @@ from app.middleware.rate_limit import (
     LOGIN_MESSAGE,
     REGISTER_LIMIT,
     REGISTER_MESSAGE,
+    enforce_identity_limit,
     limiter,
 )
 from app.models.user import User
@@ -58,8 +59,9 @@ def register(request: Request, dto: RegisterRequest, db: Session = Depends(get_d
 
 
 @router.post("/login", summary="Iniciar sesión")
-@limiter.limit(LOGIN_LIMIT, error_message=LOGIN_MESSAGE)
 def login(request: Request, dto: LoginRequest, db: Session = Depends(get_db)):
+    # IP + email, como el `loginLimiter` de Node (ver middleware/rate_limit.py).
+    enforce_identity_limit(request, scope="login", limit=LOGIN_LIMIT, identity=dto.email, message=LOGIN_MESSAGE)
     ctx = request_context(request)
     result = auth_service.login(db, dto.email, dto.password, dto.remember, ctx)
 
@@ -112,8 +114,11 @@ def change_my_password(
 
 
 @router.post("/forgot-password", summary="Solicitar recuperación de contraseña")
-@limiter.limit(FORGOT_PASSWORD_LIMIT, error_message=FORGOT_PASSWORD_MESSAGE)
 def forgot_password(request: Request, dto: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    enforce_identity_limit(
+        request, scope="forgot-password", limit=FORGOT_PASSWORD_LIMIT, identity=dto.email,
+        message=FORGOT_PASSWORD_MESSAGE,
+    )
     result = auth_service.forgot_password(db, dto.email)
     return ok(data={"resetToken": result.get("reset_token")}, message=result["message"])
 
