@@ -3,6 +3,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   ListTree,
+  Mail,
   MessageSquareWarning,
   Package,
   Receipt,
@@ -55,6 +56,7 @@ export const panelNavByRole = {
       links: [
         { to: '/panel/admin/reportes', label: 'Reportes', icon: BarChart3 },
         { to: '/panel/admin/bitacora', label: 'Bitácora', icon: ScrollText },
+        { to: '/panel/admin/correos', label: 'Correos', icon: Mail },
       ],
     },
   ],
