@@ -607,6 +607,63 @@
           }
         },
         {
+          "name": "GET /emails/logs (correo de la compra registrado, 200)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// El registro lo escribe el hilo de envío justo después del commit.",
+                  "setTimeout(() => {}, 1000);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('un solo correo por la compra', () => pm.expect(datos).to.have.lengthOf(1));",
+                  "pm.test('es la confirmacion de compra con el numero de pedido', () => { pm.expect(datos[0].kind).to.eql('sale_created'); pm.expect(datos[0].subject).to.include(pm.environment.get('saleNumber')); });",
+                  "pm.test('va al correo del cliente', () => pm.expect(datos[0].recipient).to.eql('cliente@beautylux.com'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?entity=sales&entityId={{saleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entity",
+                  "value": "sales"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{saleId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /sales (los precios del body se ignoran, 201)",
           "event": [
             {
@@ -852,6 +909,60 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 3,\n      \"quantity\": 1\n    }\n  ],\n  \"channel\": \"pos\",\n  \"customer\": {\n    \"firstName\": \"Marta\",\n    \"lastName\": \"Gomez\",\n    \"phone\": \"3111111111\"\n  },\n  \"shipping\": {\n    \"method\": \"pickup\"\n  },\n  \"paymentMethod\": \"cash\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (venta POS sin correo no envia nada, 200)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// El registro lo escribe el hilo de envío justo después del commit.",
+                  "setTimeout(() => {}, 1000);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('sin email del comprador no hay correo', () => pm.expect(pm.response.json().data).to.be.empty);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?entity=sales&entityId={{posSaleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entity",
+                  "value": "sales"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{posSaleId}}"
+                }
+              ]
             }
           }
         },
@@ -1835,6 +1946,62 @@
           }
         },
         {
+          "name": "GET /emails/logs (la cita aviso confirmacion y cambio de horario, 200)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// El registro lo escribe el hilo de envío justo después del commit.",
+                  "setTimeout(() => {}, 1000);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const tipos = pm.response.json().data.map((fila) => fila.kind);",
+                  "pm.test('correo al confirmar la reserva', () => pm.expect(tipos).to.include('appointment_confirmed'));",
+                  "pm.test('correo al reprogramar', () => pm.expect(tipos).to.include('appointment_rescheduled'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?entity=appointments&entityId={{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entity",
+                  "value": "appointments"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{appointmentId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "PATCH /appointments/:id/status (el personal la marca atendida, 200)",
           "event": [
             {
@@ -2037,6 +2204,60 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"items\": [\n    {\n      \"itemType\": \"product\",\n      \"itemId\": 1,\n      \"quantity\": 1\n    },\n    {\n      \"itemType\": \"service\",\n      \"itemId\": 2,\n      \"quantity\": 1\n    }\n  ],\n  \"shipping\": {\n    \"method\": \"standard\",\n    \"city\": \"Medellín\"\n  },\n  \"paymentMethod\": \"card\",\n  \"appointmentHoldIds\": [\n    \"{{checkoutHoldId}}\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (la cita del checkout va dentro del correo de compra, 200)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// El registro lo escribe el hilo de envío justo después del commit.",
+                  "setTimeout(() => {}, 1000);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "pm.test('la cita confirmada por la compra no manda correo aparte', () => pm.expect(pm.response.json().data).to.be.empty);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?entity=appointments&entityId={{checkoutHoldId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entity",
+                  "value": "appointments"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{checkoutHoldId}}"
+                }
+              ]
             }
           }
         },
@@ -2365,6 +2586,61 @@
                 {
                   "key": "saleId",
                   "value": "{{invoiceSaleId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (correo de la factura registrado, 200)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// El registro lo escribe el hilo de envío justo después del commit.",
+                  "setTimeout(() => {}, 1000);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('la factura se envio por correo (con el PDF adjunto)', () => { pm.expect(datos).to.have.lengthOf(1); pm.expect(datos[0].kind).to.eql('invoice_issued'); pm.expect(datos[0].subject).to.match(/FAC-\\d{4}-\\d{5}/); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?entity=invoices&entityId={{invoiceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entity",
+                  "value": "invoices"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{invoiceId}}"
                 }
               ]
             }
