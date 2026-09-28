@@ -14,6 +14,7 @@
 --   invoices   = facturas      invoice_details = detalle de factura
 --   pqr        = peticiones, quejas, reclamos y sugerencias
 --   conversations = conversaciones del chat   messages = mensajes del chat
+--   email_logs = registro de correos enviados (migracion a Brevo)
 -- =====================================================================
 
 CREATE DATABASE IF NOT EXISTS db_beautylux_v2
@@ -24,6 +25,7 @@ USE db_beautylux_v2;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS email_logs;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS conversations;
 DROP TABLE IF EXISTS pqr;
@@ -596,4 +598,36 @@ CREATE TABLE messages (
     CONSTRAINT fk_messages_conversation
         FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_messages_conversation (conversation_id)
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- email_logs — registro de cada correo que la API intentó enviar
+-- (migración a Brevo)
+--
+-- `status`: `sent` (Brevo lo aceptó), `failed` (con `error_message`) o
+-- `skipped` (MAIL_ENABLED=false: solo se escribió en el log). `entity` y
+-- `entity_id` señalan lo que originó el correo (una venta, una PQR...) sin
+-- llave foránea, igual que `audit_logs`, para que el registro sobreviva a
+-- cambios en esa fila. Se escribe desde el hilo que envía el correo, en su
+-- propia transacción, después del commit de la petición.
+-- ---------------------------------------------------------------------
+CREATE TABLE email_logs (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    kind           VARCHAR(40)  NOT NULL,
+    recipient      VARCHAR(60)  NOT NULL,
+    subject        VARCHAR(200) NOT NULL,
+    status         ENUM('sent', 'failed', 'skipped') NOT NULL,
+    attempts       TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    error_message  VARCHAR(500) NULL,
+    entity         VARCHAR(40)  NULL,
+    entity_id      INT UNSIGNED NULL,
+    user_id        INT UNSIGNED NULL,
+    sent_at        DATETIME NULL,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_email_logs_user
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX idx_email_logs_status (status),
+    INDEX idx_email_logs_kind (kind),
+    INDEX idx_email_logs_entity (entity, entity_id),
+    INDEX idx_email_logs_created_at (created_at)
 ) ENGINE = InnoDB;

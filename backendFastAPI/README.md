@@ -72,33 +72,49 @@ al arrancar (con `pydantic-settings`) y el proceso se detiene con un mensaje cla
 algo. Usa el **mismo** `JWT_ACCESS_SECRET` que `backend/.env` si quieres que un token emitido
 por cualquiera de los dos backends sea válido en el otro.
 
-### Correo de recuperación de contraseña (SMTP)
+### Correo (Brevo por SMTP)
 
-Con `MAIL_ENABLED=false` (por defecto) no se envía ningún correo: el enlace se escribe en el
-log del servidor, útil para desarrollar sin bandeja de correo. Para probar el envío real, usa
-un [Mailtrap Sandbox](https://mailtrap.io) (Email Testing → tu inbox → pestaña *Integration*
-para las credenciales SMTP) y completa en `.env`:
+La API envía correos transaccionales (recuperación de contraseña, PQR y correo de prueba) por
+SMTP con [Brevo](https://www.brevo.com), sin dependencias nuevas (`smtplib`).
+
+**En local se deja `MAIL_ENABLED=false`.** No sale nada: cada correo se escribe en el log del
+servidor (asunto, destinatario y texto, incluido el enlace de recuperación) y queda registrado
+en la tabla `email_logs` con estado `skipped`. Así se prueba todo el flujo sin gastar la cuota
+de Brevo (300 correos/día en la capa gratuita) ni mandar correos a los usuarios de prueba
+`@beautylux.com`, que no existen y rebotarían.
+
+**En producción (Render)** se activa con estas variables:
 
 ```bash
-FRONTEND_URL=http://localhost:5173
-
 MAIL_ENABLED=true
-SMTP_HOST=sandbox.smtp.mailtrap.io
-SMTP_PORT=2525
-SMTP_USER=<tu usuario de Mailtrap>
-SMTP_PASSWORD=<tu contraseña de Mailtrap>
-SMTP_FROM=BeautyLux <no-reply@beautylux.com>
+SMTP_HOST=smtp-relay.sendinblue.com   # nombre heredado de Brevo, ver nota
+SMTP_PORT=2525                        # Render free bloquea 25, 465 y 587
 SMTP_SECURITY=starttls
+SMTP_USER=<login SMTP de Brevo>       # Brevo > SMTP & API > SMTP
+SMTP_PASSWORD=<clave SMTP de Brevo>   # la clave SMTP, no la API key
+SMTP_FROM=BeautyLux <tu-correo@gmail.com>   # remitente verificado en Brevo > Senders
+MAIL_REPLY_TO=tu-correo@gmail.com
 ```
 
-Con `MAIL_ENABLED=true`, cada correo (solicitud de recuperación y confirmación de cambio de
-contraseña) llega a la bandeja de Mailtrap, aunque el destinatario sea uno de los usuarios de
-prueba (`@beautylux.com`, que no existen de verdad). El envío corre en segundo plano
-(`BackgroundTasks` de FastAPI), después de responder al frontend, para que la latencia de SMTP
-nunca retrase la respuesta HTTP.
+- **Host:** `smtp-relay.brevo.com` y `smtp-relay.sendinblue.com` resuelven al mismo servidor,
+  pero su certificado TLS solo es válido para el nombre heredado. Con el nuevo, la verificación
+  del certificado falla. `SMTP_TLS_VERIFY=false` existe como último recurso, no como solución.
+- **Remitente:** un Gmail verificado sirve; Brevo lo reescribe a `@brevosend.com` porque no
+  puede firmar en nombre de gmail.com. `MAIL_REPLY_TO` hace que las respuestas lleguen al Gmail.
+- Con `MAIL_ENABLED=true` la API no arranca si faltan `SMTP_USER`, `SMTP_PASSWORD` o `SMTP_FROM`.
 
-Con el correo funcionando, se recomienda poner `EXPOSE_RESET_TOKEN=false`: ese flag solo existe
-como respaldo para probar el flujo sin bandeja de correo (expone el token en la respuesta JSON).
+**Cómo sale un correo.** Los services lo dejan en una bandeja de salida atada a la sesión de
+la petición (`app/core/mail_outbox.py`); `get_db()` lo despacha **solo después del commit** a un
+pool de 2 hilos, así que un fallo de la petición no envía nada y un SMTP lento nunca retrasa la
+respuesta ni retiene una conexión de MySQL. Los errores transitorios se reintentan
+(`SMTP_MAX_RETRIES`, espera exponencial) y el resultado queda en `email_logs`.
+
+**Comprobar la configuración:** `POST /api/emails/test` (solo admin) envía un correo de prueba
+en la misma petición y devuelve `sent`, `skipped` o `failed` con el error. `GET /api/emails/logs`
+lista el historial con filtros.
+
+Con el correo funcionando, deja `EXPOSE_RESET_TOKEN=false`: ese flag solo existe como respaldo
+para probar el flujo sin bandeja de correo (expone el token en la respuesta JSON).
 
 ## Usuarios de prueba
 

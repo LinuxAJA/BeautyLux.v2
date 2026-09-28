@@ -10,11 +10,16 @@ Quién puede qué:
   · `GET /api/pqr`                  — autenticado; el personal ve todas, el
     cliente solo las suyas (lo fuerza el service).
   · `PATCH .../status` y `POST .../response` — solo admin y empleado.
+
+La radicación está limitada a 10 por hora y por IP: cada PQR envía un correo
+a la dirección que escribe quien la radica.
+
+Nota: este archivo NO usa `from __future__ import annotations` — el mismo
+motivo que en auth.py: `@limiter.limit(...)` rompe la resolución de
+anotaciones diferidas (PEP 563).
 """
 
-from __future__ import annotations
-
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.responses import created, ok
@@ -22,6 +27,7 @@ from app.db.session import get_db
 from app.dependencies.auth import get_current_user, get_current_user_optional
 from app.dependencies.common import client_ip
 from app.dependencies.roles import require_role
+from app.middleware.rate_limit import PQR_CREATE_LIMIT, PQR_CREATE_MESSAGE, limiter
 from app.models.user import User
 from app.schemas.pqr import CreatePqrRequest, RespondPqrRequest, UpdatePqrStatusRequest
 from app.services.pqr import pqr_service
@@ -30,16 +36,14 @@ router = APIRouter(prefix="/pqr", tags=["PQR"])
 
 
 @router.post("", summary="Radicar una PQR (público o autenticado)", status_code=201)
+@limiter.limit(PQR_CREATE_LIMIT, error_message=PQR_CREATE_MESSAGE)
 def create_pqr(
-    dto: CreatePqrRequest,
     request: Request,
-    background_tasks: BackgroundTasks,
+    dto: CreatePqrRequest,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
-    result = pqr_service.submit(
-        db, dto, actor=user, ip_address=client_ip(request), background_tasks=background_tasks
-    )
+    result = pqr_service.submit(db, dto, actor=user, ip_address=client_ip(request))
     return created(data=result, message="Tu PQR quedó radicada. Guarda el número de seguimiento.")
 
 
@@ -96,11 +100,8 @@ def respond_pqr(
     pqr_id: int,
     dto: RespondPqrRequest,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(require_role("admin", "employee")),
 ):
-    result = pqr_service.respond(
-        db, pqr_id, dto.response, actor=user, ip_address=client_ip(request), background_tasks=background_tasks
-    )
+    result = pqr_service.respond(db, pqr_id, dto.response, actor=user, ip_address=client_ip(request))
     return ok(data=result, message="Respuesta enviada correctamente.")

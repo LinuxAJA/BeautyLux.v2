@@ -4615,6 +4615,331 @@
           }
         }
       ]
+    },
+    {
+      "name": "14. Correo",
+      "item": [
+        {
+          "name": "POST /emails/test (el admin envia un correo de prueba, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('Brevo lo acepto (sent) o MAIL_ENABLED=false lo dejo en el log (skipped)', () => pm.expect(datos.status).to.be.oneOf(['sent', 'skipped']));",
+                  "pm.test('sin destinatario va al correo del propio admin', () => pm.expect(datos.recipient).to.eql('admin@beautylux.com'));",
+                  "pm.test('queda registrado en email_logs', () => pm.expect(datos.logId).to.be.a('number'));",
+                  "pm.environment.set('emailTestLogId', datos.logId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "test"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "POST /emails/test (correo invalido, 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 validacion', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje en espanol', () => pm.expect(pm.response.text()).to.include('Escribe un correo válido'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "test"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"esto-no-es-un-correo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /emails/test (el cliente no puede, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "test"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (el admin ve el historial, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('trae metadatos de paginacion', () => pm.expect(cuerpo.meta).to.include.all.keys('page', 'perPage', 'total', 'totalPages'));",
+                  "pm.test('el correo de prueba es el mas reciente', () => pm.expect(cuerpo.data[0].id).to.eql(pm.environment.get('emailTestLogId')));",
+                  "pm.test('cada fila trae tipo, destinatario y estado', () => cuerpo.data.forEach((fila) => pm.expect(fila).to.include.all.keys('kind', 'recipient', 'status', 'attempts', 'createdAt')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (filtro por tipo, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('solo correos de PQR radicada', () => datos.forEach((fila) => pm.expect(fila.kind).to.eql('pqr_received')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?kind=pqr_received",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "pqr_received"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (correo de la PQR publica registrado, 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ok', () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json().data;",
+                  "pm.test('la PQR de la carpeta 12 genero su correo de radicacion', () => pm.expect(datos.map((fila) => fila.kind)).to.include('pqr_received'));",
+                  "pm.test('apunta a la PQR y al correo de contacto', () => { pm.expect(datos[0].entityId).to.eql(pm.environment.get('pqrPublicId')); pm.expect(datos[0].recipient).to.eql(pm.environment.get('pqrPublicEmail')); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs?entity=pqr&entityId={{pqrPublicId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entity",
+                  "value": "pqr"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{pqrPublicId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (el cliente no puede, 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403 prohibido', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /emails/logs (sin autenticar, 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 no autenticado', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/emails/logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emails",
+                "logs"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

@@ -12,18 +12,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 
 from app.core.email_templates import pqr_answered, pqr_received
 from app.core.errors import BadRequestError, ConflictError, NotFoundError
-from app.core.mailer import send_email
 from app.core.pagination import build_meta
 from app.models.pqr import Pqr
 from app.repositories.pqr import pqr_repository
 from app.repositories.sale import sale_repository
 from app.schemas.pqr import PqrOut
 from app.services.audit import audit_service
+from app.services.email import email_service
 
 STAFF_ROLES = ("admin", "employee")
 
@@ -32,7 +31,7 @@ class PqrService:
     # -----------------------------------------------------------------
     # Radicación
     # -----------------------------------------------------------------
-    def submit(self, db, dto, *, actor, ip_address: str | None, background_tasks: BackgroundTasks) -> PqrOut:
+    def submit(self, db, dto, *, actor, ip_address: str | None) -> PqrOut:
         if dto.sale_id is not None:
             sale = sale_repository.find_by_id(db, dto.sale_id)
             if not sale:
@@ -69,11 +68,16 @@ class PqrService:
             ip_address=ip_address,
         )
 
-        subject, html_body, text_body = pqr_received(
-            first_name=pqr.contact_first_name, ticket_number=pqr.ticket_number, subject=pqr.subject
-        )
-        background_tasks.add_task(
-            send_email, to=pqr.contact_email, subject=subject, html_body=html_body, text_body=text_body
+        email_service.queue(
+            db,
+            kind="pqr_received",
+            to=pqr.contact_email,
+            rendered=pqr_received(
+                first_name=pqr.contact_first_name, ticket_number=pqr.ticket_number, subject=pqr.subject
+            ),
+            user_id=pqr.user_id,
+            entity="pqr",
+            entity_id=pqr.id,
         )
 
         return PqrOut.from_model(pqr)
@@ -180,10 +184,7 @@ class PqrService:
         )
         return PqrOut.from_model(pqr)
 
-    def respond(
-        self, db, pqr_id: int, response_text: str, *, actor, ip_address: str | None,
-        background_tasks: BackgroundTasks,
-    ) -> PqrOut:
+    def respond(self, db, pqr_id: int, response_text: str, *, actor, ip_address: str | None) -> PqrOut:
         pqr = pqr_repository.find_by_id_with_sale(db, pqr_id)
         if not pqr:
             raise NotFoundError("La PQR no existe.")
@@ -206,11 +207,16 @@ class PqrService:
             ip_address=ip_address,
         )
 
-        subject, html_body, text_body = pqr_answered(
-            first_name=pqr.contact_first_name, ticket_number=pqr.ticket_number, response=response_text
-        )
-        background_tasks.add_task(
-            send_email, to=pqr.contact_email, subject=subject, html_body=html_body, text_body=text_body
+        email_service.queue(
+            db,
+            kind="pqr_answered",
+            to=pqr.contact_email,
+            rendered=pqr_answered(
+                first_name=pqr.contact_first_name, ticket_number=pqr.ticket_number, response=response_text
+            ),
+            user_id=pqr.user_id,
+            entity="pqr",
+            entity_id=pqr.id,
         )
 
         return PqrOut.from_model(pqr)
