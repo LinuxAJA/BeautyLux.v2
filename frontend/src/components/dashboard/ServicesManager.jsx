@@ -8,6 +8,7 @@ import ServiceFormModal from './ServiceFormModal';
 import StatusBadge from './StatusBadge';
 import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
+import usePagination from '../../hooks/usePagination';
 import * as servicesService from '../../services/services.service';
 import { formatPrice } from '../../data/products';
 
@@ -18,9 +19,11 @@ function ServicesManager({ canDelete = true }) {
   const [actionError, setActionError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
-  const { data, isLoading, error, refetch } = useApi(
-    () => servicesService.listServices({ search, perPage: 50 }),
-    [search],
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error, refetch } = useApi(
+    () => servicesService.listServices({ search, page, perPage: 10 }),
+    [search, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -115,12 +118,15 @@ function ServicesManager({ canDelete = true }) {
       />
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="servicios"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por nombre..."
         emptyMessage="No hay servicios para mostrar."
       />

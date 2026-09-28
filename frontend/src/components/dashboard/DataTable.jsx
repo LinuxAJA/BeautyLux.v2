@@ -1,14 +1,51 @@
+import { useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 
+import Pagination from '../ui/Pagination';
 import { cn } from '../../utils/cn';
 
 /**
  * Tabla reutilizable con búsqueda, estado de carga y estado vacío.
  * `columns`: [{ key, header, render?(row) }]
+ *
+ * Con `meta` (el de la API) y `onPageChange` pinta la paginación al pie. Si
+ * la página pedida ya no existe (se borró el último registro de la última
+ * página), vuelve sola a la última que sí hay.
  */
-function DataTable({ columns, rows, isLoading, error, search, onSearchChange, searchPlaceholder, emptyMessage, toolbar }) {
+function DataTable({
+  columns,
+  rows,
+  isLoading,
+  error,
+  search,
+  onSearchChange,
+  searchPlaceholder,
+  emptyMessage,
+  toolbar,
+  meta,
+  onPageChange,
+  itemLabel,
+}) {
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (onPageChange && meta && meta.totalPages > 0 && meta.page > meta.totalPages) {
+      onPageChange(meta.totalPages);
+    }
+  }, [meta, onPageChange]);
+
+  const handlePageChange = (nextPage) => {
+    onPageChange(nextPage);
+    // Si la cabecera de la tabla quedó arriba de la ventana, la trae de vuelta.
+    const top = rootRef.current?.getBoundingClientRect().top ?? 0;
+    if (top < 0) {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      rootRef.current.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
+  };
+
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-card">
+    <div ref={rootRef} className="scroll-mt-20 rounded-2xl border border-border bg-card shadow-card">
       <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         {onSearchChange && (
           <div className="relative w-full sm:max-w-xs">
@@ -78,6 +115,15 @@ function DataTable({ columns, rows, isLoading, error, search, onSearchChange, se
           </tbody>
         </table>
       </div>
+
+      {onPageChange && (
+        <Pagination
+          meta={meta}
+          onPageChange={handlePageChange}
+          itemLabel={itemLabel}
+          className="border-t border-border px-4 py-3 empty:hidden"
+        />
+      )}
     </div>
   );
 }

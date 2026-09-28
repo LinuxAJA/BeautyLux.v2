@@ -7,6 +7,7 @@ import DataTable from '../../../components/dashboard/DataTable';
 import PqrStatusBadge from '../../../components/dashboard/PqrStatusBadge';
 import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
+import usePagination from '../../../hooks/usePagination';
 import * as pqrService from '../../../services/pqr.service';
 import { pqrTypes } from '../../../data/documentTypes';
 
@@ -18,9 +19,11 @@ function ClientPqr() {
   const [search, setSearch] = useState('');
   const [detailPqr, setDetailPqr] = useState(undefined);
 
-  const { data, isLoading, error } = useApi(
-    () => pqrService.listPqr({ search, perPage: 50, orderBy: 'createdAt', orderDir: 'desc' }),
-    [search],
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error } = useApi(
+    () => pqrService.listPqr({ search, page, perPage: 10, orderBy: 'createdAt', orderDir: 'desc' }),
+    [search, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -59,12 +62,15 @@ function ClientPqr() {
       />
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="PQR"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por ticket o asunto..."
         emptyMessage="Todavía no has radicado ninguna PQR."
       />

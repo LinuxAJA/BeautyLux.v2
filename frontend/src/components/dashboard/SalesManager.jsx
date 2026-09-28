@@ -10,6 +10,7 @@ import DataTable from './DataTable';
 import SaleStatusModal from './SaleStatusModal';
 import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
+import usePagination from '../../hooks/usePagination';
 import * as salesService from '../../services/sales.service';
 import { formatPrice } from '../../data/products';
 
@@ -51,15 +52,18 @@ function SalesManager() {
   const [statusSale, setStatusSale] = useState(null);
   const [notice, setNotice] = useState(null);
 
-  const { data, isLoading, error, refetch } = useApi(
-    () => salesService.listSales({ search, ...filters, perPage: 50, orderBy: 'soldAt', orderDir: 'desc' }),
-    [search, filters],
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error, refetch } = useApi(
+    () => salesService.listSales({ search, ...filters, page, perPage: 10, orderBy: 'soldAt', orderDir: 'desc' }),
+    [search, filters, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
 
   const { minTotal, maxTotal, ...baseFilters } = filters;
-  const setBaseFilters = (next) => setFilters({ ...next, minTotal, maxTotal });
+  const changeFilters = withReset(setFilters);
+  const setBaseFilters = (next) => changeFilters({ ...next, minTotal, maxTotal });
 
   const handleSaveStatus = async (saleId, status) => {
     const { data: updated } = await salesService.updateSaleStatus(saleId, status);
@@ -135,7 +139,7 @@ function SalesManager() {
       <DashboardFilters
         value={baseFilters}
         onChange={setBaseFilters}
-        onClear={() => setFilters(EMPTY_FILTERS)}
+        onClear={() => changeFilters(EMPTY_FILTERS)}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:max-w-md">
@@ -145,7 +149,7 @@ function SalesManager() {
           label="Valor mínimo"
           placeholder="$ 0"
           value={minTotal}
-          onChange={(event) => setFilters({ ...filters, minTotal: event.target.value })}
+          onChange={(event) => changeFilters({ ...filters, minTotal: event.target.value })}
         />
         <Input
           type="number"
@@ -153,17 +157,20 @@ function SalesManager() {
           label="Valor máximo"
           placeholder="Sin límite"
           value={maxTotal}
-          onChange={(event) => setFilters({ ...filters, maxTotal: event.target.value })}
+          onChange={(event) => changeFilters({ ...filters, maxTotal: event.target.value })}
         />
       </div>
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="ventas"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por número de venta o cliente..."
         emptyMessage="No hay ventas con estos filtros."
       />
