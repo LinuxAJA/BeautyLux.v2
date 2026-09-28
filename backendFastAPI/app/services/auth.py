@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.core.cookies import hash_token
-from app.core.email_templates import build_reset_url, password_reset_completed, password_reset_requested
+from app.core.email_templates import build_reset_url, password_reset_completed, password_reset_requested, welcome
 from app.core.errors import AppError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
 from app.core.security import compare_password, get_dummy_hash, hash_password
 from app.core.config import settings
@@ -73,6 +73,16 @@ class AuthService:
             entity="users",
             entity_id=user.id,
             ip_address=ctx.ip_address,
+        )
+
+        email_service.queue(
+            db,
+            kind="welcome",
+            to=user.email,
+            rendered=welcome(first_name=user.first_name),
+            user_id=user.id,
+            entity="users",
+            entity_id=user.id,
         )
 
         created = user_repository.find_by_id_with_role(db, user.id)

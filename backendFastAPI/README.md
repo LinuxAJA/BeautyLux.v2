@@ -74,8 +74,22 @@ por cualquiera de los dos backends sea válido en el otro.
 
 ### Correo (Brevo por SMTP)
 
-La API envía correos transaccionales (recuperación de contraseña, PQR y correo de prueba) por
-SMTP con [Brevo](https://www.brevo.com), sin dependencias nuevas (`smtplib`).
+La API envía correos transaccionales por SMTP con [Brevo](https://www.brevo.com), sin
+dependencias nuevas (`smtplib`):
+
+| `kind` en `email_logs`                                 | Cuándo sale                                                                  |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `welcome`                                              | Registro de una cuenta (`POST /api/auth/register`)                           |
+| `password_reset_requested` / `password_reset_completed` | Recuperación de contraseña                                                   |
+| `sale_created`                                         | Compra web o POS; incluye las citas reservadas en el checkout                |
+| `invoice_issued`                                       | Emisión de la factura (al pagar la venta o a mano), con el **PDF adjunto**   |
+| `appointment_confirmed`                                | Cita agendada directamente o reserva confirmada fuera del checkout           |
+| `appointment_rescheduled` / `appointment_cancelled`    | Cambio de horario o cancelación de una cita **ya confirmada**                |
+| `pqr_received` / `pqr_answered`                        | Radicación y respuesta de una PQR                                            |
+| `test`                                                 | `POST /api/emails/test`                                                      |
+
+Sin email del destinatario (venta POS a consumidor final) no se envía nada. Mover o cancelar
+una reserva temporal del checkout tampoco avisa: la cita aún no estaba confirmada.
 
 **En local se deja `MAIL_ENABLED=false`.** No sale nada: cada correo se escribe en el log del
 servidor (asunto, destinatario y texto, incluido el enlace de recuperación) y queda registrado

@@ -22,6 +22,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from app.core.email_templates import sale_created
 from app.core.errors import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.core.pagination import build_meta
 from app.models.product import Product
@@ -33,6 +34,7 @@ from app.repositories.sale import sale_repository
 from app.repositories.user import user_repository
 from app.schemas.sale import SaleOut
 from app.services.audit import audit_service
+from app.services.email import email_service
 
 CENT = Decimal("0.01")
 
@@ -204,7 +206,7 @@ class SaleService:
 
         db.flush()
 
-        self._attach_appointments(db, sale, details, dto.appointment_hold_ids, actor=actor)
+        appointments = self._attach_appointments(db, sale, details, dto.appointment_hold_ids, actor=actor)
 
         audit_service.record(
             db,
@@ -225,25 +227,39 @@ class SaleService:
         )
 
         created = sale_repository.find_by_id_with_details(db, sale.id)
+
+        # Un solo correo por compra: las citas confirmadas en el checkout van
+        # dentro. Una venta POS a consumidor final sin email no manda nada.
+        email_service.queue(
+            db,
+            kind="sale_created",
+            to=created.customer_email,
+            rendered=sale_created(sale=created, appointments=appointments),
+            user_id=created.user_id,
+            entity="sales",
+            entity_id=created.id,
+        )
         return SaleOut.from_model(created, with_details=True)
 
-    def _attach_appointments(self, db, sale, details, hold_ids, *, actor) -> None:
+    def _attach_appointments(self, db, sale, details, hold_ids, *, actor) -> list:
         """Confirma las reservas de cita hechas durante el checkout.
 
         Cada reserva se cuelga de la línea de servicio que le corresponde, para
         que la factura y el detalle del pedido puedan mostrar juntos el
         servicio comprado y el día en que se presta. Va dentro de la misma
         transacción que la venta: si algo falla aquí, no queda una venta
-        cobrada sin su cita.
+        cobrada sin su cita. Devuelve las citas confirmadas, para el correo
+        de la compra.
         """
         if not hold_ids:
-            return
+            return []
 
         # Una línea por servicio, para emparejar cada cita con la suya.
         detail_by_service = {
             detail.service_id: detail for detail in details if detail.item_type == "service"
         }
 
+        confirmed = []
         for hold_id in hold_ids:
             appointment = appointment_repository.find_by_id(db, hold_id)
             if not appointment or appointment.status != "hold":
@@ -267,8 +283,10 @@ class SaleService:
             appointment.hold_expires_at = None
             appointment.sale_id = sale.id
             appointment.sale_detail_id = detail.id
+            confirmed.append(appointment)
 
         db.flush()
+        return confirmed
 
     def _resolve_customer(self, db, dto, *, actor, is_staff: bool) -> dict:
         """Decide a nombre de quién queda la venta y congela sus datos.

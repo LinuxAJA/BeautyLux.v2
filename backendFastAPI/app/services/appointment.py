@@ -22,6 +22,7 @@ from datetime import date, datetime, time, timedelta
 
 from sqlalchemy.exc import IntegrityError
 
+from app.core.email_templates import appointment_cancelled, appointment_confirmed, appointment_rescheduled
 from app.core.errors import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.core.pagination import build_meta
 from app.models.appointment import Appointment
@@ -30,6 +31,7 @@ from app.repositories.service import service_repository
 from app.repositories.user import user_repository
 from app.schemas.appointment import AppointmentOut, AvailabilityOut
 from app.services.audit import audit_service
+from app.services.email import email_service
 
 STAFF_ROLES = ("admin", "employee")
 
@@ -258,6 +260,7 @@ class AppointmentService:
             },
             ip_address=ip_address,
         )
+        self._notify(db, appointment, kind="appointment_confirmed", rendered=appointment_confirmed(appointment=appointment))
         return AppointmentOut.from_model(appointment)
 
     def _confirm_hold(self, db, dto, *, actor, ip_address: str | None) -> AppointmentOut:
@@ -286,7 +289,19 @@ class AppointmentService:
             changes={"before": {"status": "hold"}, "after": {"status": "confirmed"}},
             ip_address=ip_address,
         )
+        self._notify(db, appointment, kind="appointment_confirmed", rendered=appointment_confirmed(appointment=appointment))
         return AppointmentOut.from_model(appointment)
+
+    def _notify(self, db, appointment, *, kind: str, rendered) -> None:
+        email_service.queue(
+            db,
+            kind=kind,
+            to=appointment.customer_email,
+            rendered=rendered,
+            user_id=appointment.user_id,
+            entity="appointments",
+            entity_id=appointment.id,
+        )
 
     def _customer_from(self, user) -> dict:
         return {
@@ -495,6 +510,8 @@ class AppointmentService:
             "scheduledDate": str(appointment.scheduled_date),
             "startTime": appointment.start_time.strftime("%H:%M"),
         }
+        previous_status = appointment.status
+        previous_date, previous_start = appointment.scheduled_date, appointment.start_time
 
         end_at = self._validate_slot(
             db,
@@ -529,6 +546,17 @@ class AppointmentService:
             },
             ip_address=ip_address,
         )
+        # Mover una reserva temporal (checkout en curso) no merece correo: la
+        # cita aún no estaba confirmada ante la clienta.
+        if previous_status == "confirmed":
+            self._notify(
+                db,
+                appointment,
+                kind="appointment_rescheduled",
+                rendered=appointment_rescheduled(
+                    appointment=appointment, previous_date=previous_date, previous_start=previous_start
+                ),
+            )
         return AppointmentOut.from_model(appointment)
 
     def cancel(self, db, appointment_id: int, *, actor, ip_address: str | None) -> AppointmentOut:
@@ -539,6 +567,7 @@ class AppointmentService:
         if appointment.status in ("completed", "no_show"):
             raise BadRequestError("Una cita ya cerrada no puede cancelarse.")
 
+        was_confirmed = appointment.status == "confirmed"
         appointment.status = "cancelled"
         appointment.cancelled_at = datetime.now()
         appointment.hold_expires_at = None
@@ -553,6 +582,8 @@ class AppointmentService:
             changes={"after": {"status": "cancelled"}},
             ip_address=ip_address,
         )
+        if was_confirmed:
+            self._notify(db, appointment, kind="appointment_cancelled", rendered=appointment_cancelled(appointment=appointment))
         return AppointmentOut.from_model(appointment)
 
     def update_status(
@@ -581,6 +612,10 @@ class AppointmentService:
             changes={"before": {"status": previous}, "after": {"status": status}},
             ip_address=ip_address,
         )
+        # Solo se avisa lo que cambia la agenda de la clienta: completar o
+        # marcar inasistencia no le dice nada nuevo.
+        if status == "cancelled" and previous == "confirmed":
+            self._notify(db, appointment, kind="appointment_cancelled", rendered=appointment_cancelled(appointment=appointment))
         return AppointmentOut.from_model(appointment)
 
 
