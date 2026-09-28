@@ -16,6 +16,7 @@ from collections.abc import Generator
 from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core import mail_outbox
 from app.core.config import settings
 
 # URL.create escapa cada parte: una contraseña generada con `@`, `/` o `#`
@@ -58,13 +59,18 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, futu
 
 def get_db() -> Generator[Session, None, None]:
     """Dependencia de FastAPI: una sesión por request, con commit/rollback
-    automático (equivalente a que cada operación de Node fuera transaccional)."""
+    automático (equivalente a que cada operación de Node fuera transaccional).
+
+    Los correos que la petición dejó en la bandeja de salida se despachan
+    solo después del commit; si algo falla, se descartan con el rollback."""
     db = SessionLocal()
     try:
         yield db
         db.commit()
+        mail_outbox.dispatch(db)
     except Exception:
         db.rollback()
+        mail_outbox.discard(db)
         raise
     finally:
         db.close()

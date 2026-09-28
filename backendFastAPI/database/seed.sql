@@ -51,6 +51,8 @@ INSERT INTO permissions (code, module, action, description) VALUES
     ('pqr.read',            'pqr',         'read',   'Consultar PQR'),
     ('pqr.create',          'pqr',         'create', 'Radicar PQR'),
     ('pqr.respond',         'pqr',         'respond','Responder y cambiar el estado de una PQR'),
+    ('emails.read',         'emails',      'read',   'Consultar el registro de correos enviados'),
+    ('emails.send',         'emails',      'send',   'Enviar un correo de prueba'),
     ('profile.read',      'profile',     'read',   'Consultar el propio perfil'),
     ('profile.update',    'profile',     'update', 'Editar el propio perfil');
 

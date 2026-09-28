@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import io
 from datetime import datetime
-from decimal import Decimal
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -26,6 +25,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
 from app.core.config import settings
+from app.core.formatting import format_cop as _money
 
 # Los mismos tonos de marca que frontend/src/index.css (--primary, --brand-gold),
 # convertidos a RGB porque reportlab no entiende hsl().
@@ -50,12 +50,6 @@ _FOOTER_STYLE = ParagraphStyle(
     "BeautyLuxFooter", parent=_styles["Normal"], fontSize=7.5, textColor=MUTED, alignment=1
 )
 _TABLE_CELL_STYLE = ParagraphStyle("BeautyLuxTableCell", parent=_styles["Normal"], fontSize=7.5, leading=10)
-
-
-def _money(value: Decimal | float) -> str:
-    """Formatea como COP sin decimales, igual que `formatPrice` del frontend."""
-    number = int(round(float(value)))
-    return f"$ {number:,}".replace(",", ".")
 
 
 def _business_header() -> list:
