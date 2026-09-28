@@ -28,6 +28,7 @@ import AdminAuditLog from './pages/panel/admin/AdminAuditLog';
 import AdminAppointments from './pages/panel/admin/AdminAppointments';
 import AdminInvoices from './pages/panel/admin/AdminInvoices';
 import AdminReports from './pages/panel/admin/AdminReports';
+import AdminEmails from './pages/panel/admin/AdminEmails';
 import AdminPos from './pages/panel/admin/AdminPos';
 import AdminPqr from './pages/panel/admin/AdminPqr';
 import AdminSales from './pages/panel/admin/AdminSales';
@@ -84,6 +85,7 @@ function App() {
             <Route path="panel/admin/pos" element={<AdminPos />} />
             <Route path="panel/admin/pqr" element={<AdminPqr />} />
             <Route path="panel/admin/bitacora" element={<AdminAuditLog />} />
+            <Route path="panel/admin/correos" element={<AdminEmails />} />
           </Route>
 
           <Route element={<RoleRoute allow={['employee']} />}>
