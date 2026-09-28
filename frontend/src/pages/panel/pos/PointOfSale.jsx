@@ -1,6 +1,7 @@
 import { CartProvider } from '../../../context/CartProvider';
 import PosItemPicker from '../../../components/pos/PosItemPicker';
 import PosTicket from '../../../components/pos/PosTicket';
+import PageHeader from '../../../components/dashboard/PageHeader';
 
 /** Carrito aparte del de la tienda pública: una venta de mostrador no debe
  * mezclarse con lo que un cliente dejó guardado en su navegador. */
@@ -19,7 +20,12 @@ const POS_STORAGE_KEY = 'beautylux.pos-cart.v1';
 function PointOfSale({ canRegisterClient = false }) {
   return (
     <CartProvider storageKey={POS_STORAGE_KEY}>
-      <h1 className="mb-4 font-serif text-2xl font-semibold">Punto de venta</h1>
+      <div className="mb-4">
+        <PageHeader
+          title="Punto de venta"
+          description="Registra ventas presenciales y cobra en el mostrador."
+        />
+      </div>
 
       {/* El diseño de dos columnas con altura fija es para pantallas de
           mostrador (tablet/escritorio); en un teléfono simplemente se

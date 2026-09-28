@@ -1,4 +1,5 @@
 import DataTable from '../../../components/dashboard/DataTable';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
 import * as metaService from '../../../services/meta.service';
 
@@ -40,7 +41,10 @@ function AdminAuditLog() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Bitácora de auditoría</h1>
+      <PageHeader
+        title="Bitácora de auditoría"
+        description="Registro de las acciones realizadas en el sistema."
+      />
       <DataTable columns={columns} rows={data ?? []} isLoading={isLoading} error={error} emptyMessage="Sin eventos registrados." />
     </div>
   );

@@ -6,6 +6,7 @@ import AppointmentStatusBadge from './AppointmentStatusBadge';
 import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import RescheduleModal from './RescheduleModal';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
 import * as appointmentsService from '../../services/appointments.service';
 import { formatDuration } from '../../utils/duration';
@@ -166,9 +167,10 @@ function AppointmentsManager({ canManageStatus = true }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold">Agenda de citas</h1>
-      </div>
+      <PageHeader
+        title="Agenda de citas"
+        description="Citas agendadas, reservas temporales y su estado."
+      />
 
       <DataTable
         columns={columns}

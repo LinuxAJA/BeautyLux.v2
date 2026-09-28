@@ -15,6 +15,7 @@ import Button from '../../../components/ui/Button';
 import ChartCard from '../../../components/dashboard/ChartCard';
 import DashboardFilters from '../../../components/dashboard/DashboardFilters';
 import DataTable from '../../../components/dashboard/DataTable';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import SalesBarChart from '../../../components/dashboard/SalesBarChart';
 import SalesLineChart from '../../../components/dashboard/SalesLineChart';
 import StatCard from '../../../components/dashboard/StatCard';
@@ -58,7 +59,10 @@ function AdminOverview() {
   const [groupBy, setGroupBy] = useState('day');
   const [topType, setTopType] = useState('product');
 
-  const { data: overview } = useApi(() => statsService.getOverview(), []);
+  const { data: overview, isLoading: isLoadingOverview, error: overviewError } = useApi(
+    () => statsService.getOverview(),
+    [],
+  );
 
   const { data: series, isLoading: isLoadingSeries } = useApi(
     () => statsService.getSalesSeries({ groupBy, ...filters }),
@@ -113,69 +117,71 @@ function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-2xl font-semibold">Hola, {user.firstName}</h1>
-        <p className="text-sm text-muted-foreground">Resumen general de BeautyLux.</p>
-      </div>
+      <PageHeader title={`Hola, ${user.firstName}`} description="Resumen general de BeautyLux." />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Usuarios registrados" value={overview?.usersCount} />
-        <StatCard icon={Package} label="Productos activos" value={overview?.productsCount} />
-        <StatCard icon={Wrench} label="Servicios activos" value={overview?.servicesCount} />
-        <StatCard icon={ShoppingBag} label="Ventas registradas" value={overview?.salesCount} />
+      {overviewError && (
+        <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          {overviewError.message ?? 'No se pudieron cargar los indicadores.'}
+        </p>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={Users} label="Usuarios registrados" value={overview?.usersCount} isLoading={isLoadingOverview} />
+        <StatCard icon={Package} label="Productos activos" value={overview?.productsCount} isLoading={isLoadingOverview} />
+        <StatCard icon={Wrench} label="Servicios activos" value={overview?.servicesCount} isLoading={isLoadingOverview} />
+        <StatCard icon={ShoppingBag} label="Ventas registradas" value={overview?.salesCount} isLoading={isLoadingOverview} />
         <StatCard
           icon={Receipt}
           label="Facturación"
           value={overview ? formatPrice(overview.invoicesTotal) : undefined}
+          isLoading={isLoadingOverview}
         />
-        <StatCard icon={CalendarDays} label="Citas de hoy" value={overview?.appointmentsToday} />
-        <StatCard icon={MessageSquare} label="PQR recibidas" value={overview?.pqrReceived} />
-        <StatCard icon={MessageSquareWarning} label="PQR pendientes" value={overview?.pqrPending} />
+        <StatCard icon={CalendarDays} label="Citas de hoy" value={overview?.appointmentsToday} isLoading={isLoadingOverview} />
+        <StatCard icon={MessageSquare} label="PQR recibidas" value={overview?.pqrReceived} isLoading={isLoadingOverview} />
+        <StatCard icon={MessageSquareWarning} label="PQR pendientes" value={overview?.pqrPending} isLoading={isLoadingOverview} />
       </div>
 
       <DashboardFilters value={filters} onChange={setFilters} onClear={() => setFilters(EMPTY_FILTERS)} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <ChartCard
           title="Más vendidos"
           subtitle="Los 5 artículos con mayor facturación en el rango filtrado."
-          isEmpty={!isLoadingTop && (topItems ?? []).length === 0}
+          isLoading={isLoadingTop}
+          isEmpty={(topItems ?? []).length === 0}
+          actions={TOP_TYPE_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={topType === option.value ? 'gradient' : 'outline'}
+              size="sm"
+              aria-pressed={topType === option.value}
+              onClick={() => setTopType(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
         >
-          <div className="mb-3 flex gap-1">
-            {TOP_TYPE_OPTIONS.map((option) => (
-              <Button
-                key={option.value}
-                variant={topType === option.value ? 'gradient' : 'outline'}
-                size="sm"
-                aria-pressed={topType === option.value}
-                onClick={() => setTopType(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-          {!isLoadingTop && (topItems ?? []).length > 0 && <SalesBarChart data={topItems} />}
+          <SalesBarChart data={topItems} />
         </ChartCard>
 
         <ChartCard
           title="Ventas en el tiempo"
           subtitle="Ingresos por período, excluye ventas canceladas."
-          isEmpty={!isLoadingSeries && (series ?? []).length === 0}
+          isLoading={isLoadingSeries}
+          isEmpty={(series ?? []).length === 0}
+          actions={GROUP_BY_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={groupBy === option.value ? 'gradient' : 'outline'}
+              size="sm"
+              aria-pressed={groupBy === option.value}
+              onClick={() => setGroupBy(option.value)}
+            >
+              {option.label}
+            </Button>
+          ))}
         >
-          <div className="mb-3 flex gap-1">
-            {GROUP_BY_OPTIONS.map((option) => (
-              <Button
-                key={option.value}
-                variant={groupBy === option.value ? 'gradient' : 'outline'}
-                size="sm"
-                aria-pressed={groupBy === option.value}
-                onClick={() => setGroupBy(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-          {!isLoadingSeries && (series ?? []).length > 0 && <SalesLineChart data={series} />}
+          <SalesLineChart data={series} />
         </ChartCard>
       </div>
 
