@@ -12,13 +12,24 @@
           "name": "Registro de usuario (201)",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Correo y documento nuevos en cada corrida: si se generaran después de la",
+                  "// petición (como antes), la primera corrida enviaría un correo vacío.",
+                  "pm.environment.set('testEmail', 'postman.test+' + Date.now() + '@example.com');",
+                  "pm.environment.set('testDocument', String(Date.now()).slice(-10));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
                   "pm.test('201 creado', () => pm.response.to.have.status(201));",
                   "const body = pm.response.json();",
-                  "pm.test('no incluye password', () => { pm.expect(body.data.password).to.be.undefined; pm.expect(body.data.passwordHash).to.be.undefined; });",
-                  "pm.environment.set('testEmail', 'postman.test+' + Date.now() + '@example.com');"
+                  "pm.test('no incluye password', () => { pm.expect(body.data.password).to.be.undefined; pm.expect(body.data.passwordHash).to.be.undefined; });"
                 ],
                 "type": "text/javascript"
               }
@@ -29,7 +40,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Tester\",\n  \"documentType\": \"CC\",\n  \"documentNumber\": \"{{$randomInt}}998877\",\n  \"address\": \"Calle de pruebas 123\",\n  \"phone\": \"3009998877\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Postman123*\",\n  \"confirmPassword\": \"Postman123*\"\n}"
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Tester\",\n  \"documentType\": \"CC\",\n  \"documentNumber\": \"{{testDocument}}\",\n  \"address\": \"Calle de pruebas 123\",\n  \"phone\": \"3009998877\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Postman123*\",\n  \"confirmPassword\": \"Postman123*\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
           }
@@ -100,7 +111,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@beautylux.com\",\n  \"password\": \"contraseña-incorrecta\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"cliente@beautylux.com\",\n  \"password\": \"contraseña-incorrecta\"\n}" },
             "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
           }
         },
@@ -1368,7 +1379,10 @@
               "script": {
                 "exec": [
                   "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
-                  "pm.test('enumera los estados validos', () => pm.expect(pm.response.json().message).to.include('pending'));"
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('error de validacion', () => pm.expect(cuerpo.code).to.eql('VALIDATION_ERROR'));",
+                  "const errorEstado = (cuerpo.errors || []).find((e) => e.field === 'status');",
+                  "pm.test('enumera los estados validos', () => pm.expect(errorEstado && errorEstado.message).to.include('pending'));"
                 ],
                 "type": "text/javascript"
               }
@@ -2052,7 +2066,10 @@
               "script": {
                 "exec": [
                   "pm.test('400 de validacion', () => pm.response.to.have.status(400));",
-                  "pm.test('enumera los estados validos', () => pm.expect(pm.response.json().message).to.include('confirmed'));"
+                  "const cuerpo = pm.response.json();",
+                  "pm.test('error de validacion', () => pm.expect(cuerpo.code).to.eql('VALIDATION_ERROR'));",
+                  "const errorEstado = (cuerpo.errors || []).find((e) => e.field === 'status');",
+                  "pm.test('enumera los estados validos', () => pm.expect(errorEstado && errorEstado.message).to.include('confirmed'));"
                 ],
                 "type": "text/javascript"
               }
