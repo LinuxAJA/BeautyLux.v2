@@ -10,6 +10,7 @@ from app.models.business_hours import BusinessHours
 from app.models.category import Category
 from app.models.conversation import Conversation
 from app.models.document_type import DocumentType
+from app.models.email_log import EmailLog
 from app.models.invoice import Invoice
 from app.models.invoice_detail import InvoiceDetail
 from app.models.message import Message
@@ -31,6 +32,7 @@ __all__ = [
     "Category",
     "Conversation",
     "DocumentType",
+    "EmailLog",
     "Invoice",
     "InvoiceDetail",
     "Message",

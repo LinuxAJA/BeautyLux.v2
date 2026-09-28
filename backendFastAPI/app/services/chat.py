@@ -11,7 +11,6 @@ palabras clave, para que el chat nunca se caiga en la sustentación.
 from __future__ import annotations
 
 import uuid
-from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.core import ai_client
 from app.core.config import settings
 from app.core.errors import NotFoundError
+from app.core.formatting import format_cop as _money
 from app.models.business_hours import BusinessHours
 from app.models.conversation import Conversation
 from app.models.user import User
@@ -61,10 +61,6 @@ _FAQ_DEFAULT = (
     "explorar nuestro catálogo en /productos y /servicios, o radicar una PQR en /pqr si necesitas "
     "ayuda con un pedido o una queja."
 )
-
-
-def _money(value: Decimal | float) -> str:
-    return f"$ {int(round(float(value))):,}".replace(",", ".")
 
 
 class ChatService:

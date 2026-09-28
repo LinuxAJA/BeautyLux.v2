@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.core import mail_outbox
 from app.core.config import settings
 from app.core.logger import logger
 from app.db.session import SessionLocal, engine, health_check
@@ -22,7 +23,22 @@ from app.middleware.error_handler import register_exception_handlers
 from app.middleware.rate_limit import limiter
 from app.middleware.request_logger import RequestLoggerMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
-from app.routers import appointments, auth, categories, chat, invoices, meta, products, pqr, reports, sales, services, stats, users
+from app.routers import (
+    appointments,
+    auth,
+    categories,
+    chat,
+    emails,
+    invoices,
+    meta,
+    products,
+    pqr,
+    reports,
+    sales,
+    services,
+    stats,
+    users,
+)
 from app.services.maintenance import purge_expired_tokens
 from app.services.permission import permission_service
 
@@ -67,6 +83,9 @@ async def lifespan(app: FastAPI):
         await maintenance_task
     except asyncio.CancelledError:
         pass
+    # Deja terminar los correos en curso antes de cerrar el pool: su hilo
+    # abre una sesión para escribir en email_logs.
+    await asyncio.to_thread(mail_outbox.shutdown)
     engine.dispose()
     logger.info("Servidor y pool de MySQL cerrados correctamente.")
 
@@ -84,6 +103,7 @@ tags_metadata = [
     {"name": "Estadísticas", "description": "Totales y series agregadas para los dashboards por rol."},
     {"name": "PQR", "description": "Peticiones, quejas, reclamos y sugerencias: radicación pública, seguimiento y respuesta del personal."},
     {"name": "Chat", "description": "Chatbot con IA (Google Gemini): abrir conversación, enviar mensajes y ver el historial. Público y autenticado."},
+    {"name": "Correo", "description": "Registro de los correos enviados por Brevo y envío de un correo de prueba. Solo admin."},
     {"name": "Metadatos", "description": "Salud del servicio, tipos de documento, roles, permisos y auditoría."},
 ]
 
@@ -126,4 +146,5 @@ app.include_router(reports.router, prefix=api_router_prefix)
 app.include_router(stats.router, prefix=api_router_prefix)
 app.include_router(pqr.router, prefix=api_router_prefix)
 app.include_router(chat.router, prefix=api_router_prefix)
+app.include_router(emails.router, prefix=api_router_prefix)
 app.include_router(meta.router, prefix=api_router_prefix)

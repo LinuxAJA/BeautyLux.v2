@@ -23,12 +23,19 @@ LOGIN_LIMIT = "5/15minute"
 REGISTER_LIMIT = "10/hour"
 FORGOT_PASSWORD_LIMIT = "3/hour"
 CHAT_MESSAGE_LIMIT = "20/15minute"
+# Cada PQR radicada dispara un correo a un destinatario que escribe quien la
+# radica: sin este tope, el formulario público serviría para mandar correo a
+# cualquiera en nombre de BeautyLux y agotaría la cuota diaria de Brevo.
+PQR_CREATE_LIMIT = "10/hour"
+EMAIL_TEST_LIMIT = "5/15minute"
 
 GENERAL_MESSAGE = "Demasiadas peticiones, inténtalo de nuevo en unos minutos."
 LOGIN_MESSAGE = "Demasiados intentos de inicio de sesión. Espera unos minutos."
 REGISTER_MESSAGE = "Demasiados registros desde esta red. Inténtalo más tarde."
 FORGOT_PASSWORD_MESSAGE = "Demasiadas solicitudes de recuperación. Inténtalo más tarde."
 CHAT_MESSAGE_MESSAGE = "Demasiados mensajes seguidos. Espera un momento antes de escribir otra vez."
+PQR_CREATE_MESSAGE = "Ya radicaste varias PQR en la última hora. Inténtalo más tarde."
+EMAIL_TEST_MESSAGE = "Demasiados correos de prueba seguidos. Espera unos minutos."
 
 # `default_limits` aplica el límite general (300/15min) a TODA petición,
 # igual que `generalLimiter` montado antes de las rutas en app.js. Los

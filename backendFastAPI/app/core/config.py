@@ -75,15 +75,32 @@ class Settings(BaseSettings):
     BUSINESS_PHONE: str = "+57 320 456 7890"
     BUSINESS_EMAIL: str = "hola@beautylux.com"
 
-    # Correo (SMTP). Con MAIL_ENABLED=false no se envía nada: el enlace se escribe en el log.
+    # Correo (SMTP, proveedor Brevo). Con MAIL_ENABLED=false no se envía nada:
+    # el correo se escribe en el log y queda en `email_logs` como `skipped`.
+    # El puerto es 2525 a propósito: el plan gratuito de Render bloquea la
+    # salida a 25, 465 y 587, y Brevo también escucha en 2525 con STARTTLS.
+    # El host es el nombre heredado de Brevo (antes Sendinblue): resuelve al
+    # mismo servidor que `smtp-relay.brevo.com`, pero su certificado TLS solo
+    # es válido para `smtp-relay.sendinblue.com`, así que con el nombre nuevo
+    # la verificación del certificado falla (comprobado el 2026-09-27).
     MAIL_ENABLED: bool = False
-    SMTP_HOST: str = "sandbox.smtp.mailtrap.io"
+    SMTP_HOST: str = "smtp-relay.sendinblue.com"
     SMTP_PORT: int = Field(default=2525, gt=0)
+    # Login SMTP del panel de Brevo (SMTP & API > SMTP) y la clave SMTP, no la API key.
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
+    # Debe ser un remitente verificado en Brevo.
     SMTP_FROM: str = "BeautyLux <no-reply@beautylux.com>"
     SMTP_SECURITY: Literal["starttls", "ssl", "none"] = "starttls"
     SMTP_TIMEOUT_SECONDS: int = Field(default=10, gt=0)
+    # Verificar el certificado del servidor SMTP. Solo se apaga como último
+    # recurso, si el nodo de Brevo que atiende presenta otro nombre.
+    SMTP_TLS_VERIFY: bool = True
+    SMTP_MAX_RETRIES: int = Field(default=2, ge=0, le=5)
+    SMTP_RETRY_BACKOFF_SECONDS: float = Field(default=2, ge=0)
+    # Brevo reescribe un remitente Gmail a @brevosend.com: Reply-To hace que
+    # las respuestas de los clientes lleguen al buzón real.
+    MAIL_REPLY_TO: str = ""
 
     # Chatbot con IA (etapa 12). Con AI_ENABLED=false, o sin GEMINI_API_KEY,
     # el chat sigue funcionando con respuestas de respaldo por FAQ local —
@@ -104,6 +121,18 @@ class Settings(BaseSettings):
     def _validate_cookie_policy(self) -> "Settings":
         if self.COOKIE_SAMESITE == "none" and not self.cookie_secure:
             raise ValueError("COOKIE_SAMESITE=none exige COOKIE_SECURE=true (el navegador rechaza la cookie sin Secure)")
+        return self
+
+    @model_validator(mode="after")
+    def _validate_mail_credentials(self) -> "Settings":
+        if self.MAIL_ENABLED:
+            missing = [
+                name for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM") if not getattr(self, name).strip()
+            ]
+            if missing:
+                raise ValueError(
+                    f"MAIL_ENABLED=true exige {', '.join(missing)} (login y clave SMTP del panel de Brevo)"
+                )
         return self
 
     @property
