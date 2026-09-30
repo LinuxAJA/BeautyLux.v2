@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { BotMessageSquare } from 'lucide-react';
 
 import ChatWidget from './ChatWidget';
 import WhatsAppButton from '../common/WhatsAppButton';
@@ -41,7 +41,7 @@ function FloatingActions() {
         aria-label="Abrir el chat de BeautyLux"
         className="flex size-14 items-center justify-center rounded-full primary-gradient text-primary-foreground shadow-elegant smooth-transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        <MessageCircle className="size-7" aria-hidden="true" />
+        <BotMessageSquare className="size-7" aria-hidden="true" />
       </button>
 
       <WhatsAppButton />
