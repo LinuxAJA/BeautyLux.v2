@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import PageHero from '../components/ui/PageHero';
 import ServiceFilters from '../components/service/ServiceFilters';
 import ServiceGrid from '../components/service/ServiceGrid';
+import Pagination from '../components/ui/Pagination';
 import { useApi } from '../hooks/useApi';
+import useUrlPage from '../hooks/useUrlPage';
 import * as categoriesService from '../services/categories.service';
 import * as servicesService from '../services/services.service';
 
@@ -22,24 +24,34 @@ function Services() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('categoria') ?? 'all');
   const [sort, setSort] = useState('featured');
+  const { page, setPage, withReset } = useUrlPage();
+  const resultsRef = useRef(null);
 
   const { data: categories } = useApi(() => categoriesService.listCategories('service'), []);
 
-  const { data: apiServices, isLoading, error } = useApi(() => {
+  const { data: apiServices, meta, isLoading, error } = useApi(() => {
     const { orderBy, orderDir } = SORT_TO_QUERY[sort];
     return servicesService.listServices({
       search: search || undefined,
       category: category === 'all' ? undefined : category,
       orderBy,
       orderDir,
-      perPage: 50,
+      page,
+      perPage: 12,
     });
-  }, [search, category, sort]);
+  }, [search, category, sort, page]);
 
   const visibleServices = useMemo(
     () => (apiServices ?? []).map(servicesService.toCardShape),
     [apiServices],
   );
+  const total = meta?.total ?? visibleServices.length;
+
+  const handlePageChange = (nextPage) => {
+    setPage(nextPage);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    resultsRef.current?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+  };
 
   return (
     <>
@@ -50,14 +62,14 @@ function Services() {
         subtitle="Rituales de belleza, maquillaje profesional y estética personalizada a cargo de especialistas certificadas."
       />
 
-      <section className="container-app py-14 lg:py-16">
+      <section ref={resultsRef} className="container-app scroll-mt-24 py-14 lg:py-16">
         <ServiceFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={withReset(setSearch)}
           category={category}
-          onCategoryChange={setCategory}
+          onCategoryChange={withReset(setCategory)}
           sort={sort}
-          onSortChange={setSort}
+          onSortChange={withReset(setSort)}
           categories={categories ?? []}
         />
 
@@ -72,7 +84,7 @@ function Services() {
           <p className="mt-6 text-sm text-muted-foreground" aria-live="polite">
             {isLoading
               ? 'Buscando servicios...'
-              : `${visibleServices.length} ${visibleServices.length === 1 ? 'servicio disponible' : 'servicios disponibles'}`}
+              : `${total} ${total === 1 ? 'servicio disponible' : 'servicios disponibles'}`}
           </p>
         )}
 
@@ -82,6 +94,8 @@ function Services() {
             emptyMessage="No encontramos servicios que coincidan con tu búsqueda. Prueba con otro término o cambia de categoría."
           />
         </div>
+
+        <Pagination meta={meta} onPageChange={handlePageChange} itemLabel="servicios" className="mt-10" />
       </section>
     </>
   );

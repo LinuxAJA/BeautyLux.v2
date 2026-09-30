@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import PageHero from '../components/ui/PageHero';
 import ProductFilters from '../components/product/ProductFilters';
 import ProductGrid from '../components/product/ProductGrid';
+import Pagination from '../components/ui/Pagination';
 import { useApi } from '../hooks/useApi';
+import useUrlPage from '../hooks/useUrlPage';
 import * as categoriesService from '../services/categories.service';
 import * as productsService from '../services/products.service';
 
@@ -21,24 +23,34 @@ function Products() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('categoria') ?? 'all');
   const [sort, setSort] = useState('featured');
+  const { page, setPage, withReset } = useUrlPage();
+  const resultsRef = useRef(null);
 
   const { data: categories } = useApi(() => categoriesService.listCategories('product'), []);
 
-  const { data: apiProducts, isLoading, error } = useApi(() => {
+  const { data: apiProducts, meta, isLoading, error } = useApi(() => {
     const { orderBy, orderDir } = SORT_TO_QUERY[sort];
     return productsService.listProducts({
       search: search || undefined,
       category: category === 'all' ? undefined : category,
       orderBy,
       orderDir,
-      perPage: 50,
+      page,
+      perPage: 12,
     });
-  }, [search, category, sort]);
+  }, [search, category, sort, page]);
 
   const visibleProducts = useMemo(
     () => (apiProducts ?? []).map(productsService.toCardShape),
     [apiProducts],
   );
+  const total = meta?.total ?? visibleProducts.length;
+
+  const handlePageChange = (nextPage) => {
+    setPage(nextPage);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    resultsRef.current?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+  };
 
   return (
     <>
@@ -49,14 +61,14 @@ function Products() {
         subtitle="Productos desarrollados con ingredientes de origen natural, fórmulas veganas y resultados comprobados."
       />
 
-      <section className="container-app py-14 lg:py-16">
+      <section ref={resultsRef} className="container-app scroll-mt-24 py-14 lg:py-16">
         <ProductFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={withReset(setSearch)}
           category={category}
-          onCategoryChange={setCategory}
+          onCategoryChange={withReset(setCategory)}
           sort={sort}
-          onSortChange={setSort}
+          onSortChange={withReset(setSort)}
           categories={categories ?? []}
         />
 
@@ -71,7 +83,7 @@ function Products() {
           <p className="mt-6 text-sm text-muted-foreground" aria-live="polite">
             {isLoading
               ? 'Buscando productos...'
-              : `${visibleProducts.length} ${visibleProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}`}
+              : `${total} ${total === 1 ? 'producto encontrado' : 'productos encontrados'}`}
           </p>
         )}
 
@@ -81,6 +93,8 @@ function Products() {
             emptyMessage="No encontramos productos que coincidan con tu búsqueda. Prueba con otro término o cambia de categoría."
           />
         </div>
+
+        <Pagination meta={meta} onPageChange={handlePageChange} itemLabel="productos" className="mt-10" />
       </section>
     </>
   );

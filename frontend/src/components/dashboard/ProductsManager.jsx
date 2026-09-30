@@ -6,7 +6,9 @@ import ConfirmDialog from './ConfirmDialog';
 import DataTable from './DataTable';
 import ProductFormModal from './ProductFormModal';
 import StatusBadge from './StatusBadge';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
+import usePagination from '../../hooks/usePagination';
 import * as productsService from '../../services/products.service';
 import { formatPrice } from '../../data/products';
 
@@ -17,9 +19,11 @@ function ProductsManager({ canDelete = true }) {
   const [actionError, setActionError] = useState(null);
   const [isActing, setIsActing] = useState(false);
 
-  const { data, isLoading, error, refetch } = useApi(
-    () => productsService.listProducts({ search, perPage: 50 }),
-    [search],
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error, refetch } = useApi(
+    () => productsService.listProducts({ search, page, perPage: 10 }),
+    [search, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -103,21 +107,27 @@ function ProductsManager({ canDelete = true }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold">Productos</h1>
-        <Button variant="gradient" onClick={() => setModalProduct(null)}>
-          <Plus />
-          Agregar producto
-        </Button>
-      </div>
+      <PageHeader
+        title="Productos"
+        description="Catálogo de productos, precios e inventario."
+        actions={
+          <Button variant="gradient" onClick={() => setModalProduct(null)}>
+            <Plus />
+            Agregar producto
+          </Button>
+        }
+      />
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="productos"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por nombre o SKU..."
         emptyMessage="No hay productos para mostrar."
       />

@@ -8,8 +8,11 @@ Reglas de maquetación, porque los clientes de correo no son navegadores:
   CSS y `linear-gradient`, así que los colores de marca van escritos en hex
   (los mismos tokens de `frontend/src/index.css`). La regla de "sin hex
   sueltos" aplica al frontend; aquí no hay alternativa.
-- El isotipo es un PNG servido por el frontend (`/email/logo.png`): Gmail
-  no pinta SVG. Si el cliente bloquea imágenes, el logotipo en texto basta.
+- El isotipo es un PNG **incrustado en el propio correo** (`cid:`), no un
+  enlace: una URL al frontend fallaba si `FRONTEND_URL` apuntaba a un
+  preview protegido de Vercel o a localhost, y los clientes bloquean las
+  imágenes remotas por defecto. `mailer.py` adjunta el PNG como parte
+  `multipart/related` cuando el HTML lo referencia. Gmail no pinta SVG.
 - **Todo valor que llega de fuera pasa por `_esc()`**: nombres, asuntos y
   respuestas de PQR son texto libre, y el formulario de PQR es público.
 """
@@ -18,10 +21,16 @@ from __future__ import annotations
 
 from datetime import datetime
 from html import escape
+from pathlib import Path
 from typing import NamedTuple
 
 from app.core.config import settings
-from app.core.formatting import format_date_long, format_time
+from app.core.formatting import format_cop, format_date_long, format_time
+
+# Isotipo incrustado: el HTML lo referencia como `cid:beautylux-logo` y el
+# mailer adjunta este archivo con ese Content-ID.
+LOGO_CID = "beautylux-logo"
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "email" / "logo.png"
 
 _BRAND = "#E9638F"
 _BRAND_DARK = "#D84A76"
@@ -56,7 +65,7 @@ def _wrap(*, title: str, preheader: str, body_html: str) -> str:
     negocio. `title` y `preheader` se escapan aquí; `body_html` ya viene
     armado con los helpers de abajo."""
     site = _esc(_site_url())
-    logo = _esc(_site_url("/email/logo.png"))
+    logo = f"cid:{LOGO_CID}"
     return f"""<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -157,6 +166,72 @@ def _detail_rows(rows: list[tuple[str, str]]) -> str:
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
         f'style="margin:0 0 20px;font-family:{_SANS};color:{_INK};">{cells}</table>'
     )
+
+
+def _items_table(rows: list[tuple[str, int, str]], totals: list[tuple[str, str, bool]]) -> str:
+    """Líneas de una compra (nombre, cantidad, importe ya formateado) y sus
+    totales (etiqueta, importe, resaltado)."""
+    cell = f"padding:10px 0;border-bottom:1px solid {_BORDER};font-size:14px;"
+    lines = "".join(
+        f'<tr><td style="{cell}">{_esc(name)}<span style="color:{_MUTED};"> × {quantity}</span></td>'
+        f'<td align="right" style="{cell}white-space:nowrap;">{_esc(amount)}</td></tr>'
+        for name, quantity, amount in rows
+    )
+    summary = ""
+    for label, amount, strong in totals:
+        size = "16px" if strong else "14px"
+        label_style = "font-weight:bold;" if strong else f"color:{_MUTED};"
+        amount_style = f"font-weight:bold;color:{_BRAND_DARK};" if strong else ""
+        summary += (
+            f'<tr><td style="padding:6px 0;font-size:{size};{label_style}">{_esc(label)}</td>'
+            f'<td align="right" style="padding:6px 0;white-space:nowrap;font-size:{size};{amount_style}">{_esc(amount)}</td></tr>'
+        )
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        f'style="margin:0 0 20px;font-family:{_SANS};color:{_INK};">{lines}{summary}</table>'
+    )
+
+
+def _section(title: str) -> str:
+    return (
+        f'<p style="margin:24px 0 8px;font-family:{_SANS};font-size:11px;font-weight:bold;'
+        f'letter-spacing:1.5px;text-transform:uppercase;color:{_MUTED};">{_esc(title)}</p>'
+    )
+
+
+# Mismas etiquetas que `frontend/src/data/checkout.js`.
+PAYMENT_LABELS = {
+    "card": "Tarjeta de crédito o débito",
+    "pse": "PSE",
+    "nequi": "Nequi",
+    "cash": "Efectivo contra entrega",
+}
+SHIPPING_LABELS = {
+    "standard": "Envío estándar",
+    "express": "Envío exprés",
+    "pickup": "Recoger en tienda",
+}
+LOCATION_LABELS = {"atelier": "En nuestro atelier", "home": "A domicilio"}
+
+
+def _appointment_when(appointment) -> str:
+    return (
+        f"{format_date_long(appointment.scheduled_date)}, "
+        f"{format_time(appointment.start_time)} – {format_time(appointment.end_time)}"
+    )
+
+
+def _appointment_rows(appointment) -> list[tuple[str, str]]:
+    return [
+        ("Cita", appointment.appointment_number),
+        ("Servicio", appointment.service_name),
+        ("Fecha y hora", _appointment_when(appointment)),
+        ("Lugar", LOCATION_LABELS.get(appointment.location, appointment.location)),
+    ]
+
+
+def _rows_as_text(rows: list[tuple[str, str]]) -> str:
+    return "".join(f"{label}: {value}\n" for label, value in rows)
 
 
 # ---------------------------------------------------------------------
@@ -264,6 +339,213 @@ def pqr_answered(*, first_name: str, ticket_number: str, response: str) -> Rende
     return RenderedEmail(
         f"Respondimos tu PQR {ticket_number} — BeautyLux",
         _wrap(title="Tu PQR tiene respuesta", preheader=f"Respuesta a la PQR {ticket_number}.", body_html=body),
+        text + _text_footer(),
+    )
+
+
+# ---------------------------------------------------------------------
+# Bienvenida
+# ---------------------------------------------------------------------
+def welcome(*, first_name: str) -> RenderedEmail:
+    body = (
+        _p(f"Hola {_esc(first_name)},")
+        + _p(
+            "Te damos la bienvenida a BeautyLux. Tu cuenta ya está activa: desde ahora puedes "
+            "comprar nuestros productos, reservar servicios de belleza y seguir tus pedidos y citas "
+            "desde tu panel."
+        )
+        + _button(_site_url("/productos"), "Explorar productos")
+        + _p(
+            f'¿Buscas un tratamiento? Mira nuestros <a href="{_esc(_site_url("/servicios"))}" '
+            f'style="color:{_BRAND_DARK};">servicios</a> y agenda tu cita en línea.'
+        )
+    )
+    text = (
+        f"Hola {first_name},\n\n"
+        "Te damos la bienvenida a BeautyLux. Tu cuenta ya está activa: puedes comprar productos, "
+        "reservar servicios y seguir tus pedidos y citas desde tu panel.\n\n"
+        f"Productos: {_site_url('/productos')}\n"
+        f"Servicios: {_site_url('/servicios')}\n"
+    )
+    return RenderedEmail(
+        "Te damos la bienvenida a BeautyLux",
+        _wrap(title="Tu cuenta está lista", preheader="Ya puedes comprar y reservar en BeautyLux.", body_html=body),
+        text + _text_footer(),
+    )
+
+
+# ---------------------------------------------------------------------
+# Compra
+# ---------------------------------------------------------------------
+def sale_created(*, sale, appointments: list) -> RenderedEmail:
+    """Confirmación de una compra web o POS. Las citas reservadas en el
+    checkout van aquí dentro en vez de en correos aparte: una compra, un correo."""
+    details = list(sale.details)
+    has_products = any(detail.item_type == "product" for detail in details)
+
+    totals = [("Subtotal", format_cop(sale.subtotal), False)]
+    if has_products:
+        shipping_label = SHIPPING_LABELS.get(sale.shipping_method, "Envío")
+        totals.append((shipping_label, format_cop(sale.shipping_cost) if sale.shipping_cost else "Gratis", False))
+    totals.append(("IVA incluido (19 %)", format_cop(sale.tax_total), False))
+    totals.append(("Total", format_cop(sale.total), True))
+
+    rows = [(detail.item_name, detail.quantity, format_cop(detail.subtotal)) for detail in details]
+    payment = PAYMENT_LABELS.get(sale.payment_method, sale.payment_method or "—")
+    info = [("Fecha", format_date_long(sale.sold_at)), ("Medio de pago", payment)]
+    if has_products:
+        info.append(("Entrega", SHIPPING_LABELS.get(sale.shipping_method, "—")))
+    order_url = _site_url(f"/pedido/{sale.sale_number}")
+
+    body = (
+        _p(f"Hola {_esc(sale.customer_first_name)},")
+        + _p("Gracias por tu compra. Registramos tu pedido con el número:")
+        + _highlight(sale.sale_number)
+        + _section("Resumen")
+        + _items_table(rows, totals)
+        + _detail_rows(info)
+    )
+    for appointment in appointments:
+        body += _section("Tu cita") + _detail_rows(_appointment_rows(appointment))
+    if sale.user_id:
+        body += _button(order_url, "Ver mi pedido")
+    body += _p("Cuando confirmemos el pago te enviaremos la factura por este medio.", muted=True)
+
+    text = (
+        f"Hola {sale.customer_first_name},\n\n"
+        f"Gracias por tu compra. Tu pedido es el {sale.sale_number}.\n\n"
+        + "".join(f"- {name} x {quantity}: {amount}\n" for name, quantity, amount in rows)
+        + "".join(f"{label}: {amount}\n" for label, amount, _ in totals)
+        + _rows_as_text(info)
+        + "".join("\nTu cita\n" + _rows_as_text(_appointment_rows(a)) for a in appointments)
+        + (f"\nVer el pedido: {order_url}\n" if sale.user_id else "")
+        + "\nCuando confirmemos el pago te enviaremos la factura por este medio.\n"
+    )
+    return RenderedEmail(
+        f"Recibimos tu pedido {sale.sale_number} — BeautyLux",
+        _wrap(
+            title="¡Gracias por tu compra!",
+            preheader=f"Pedido {sale.sale_number} por {format_cop(sale.total)}.",
+            body_html=body,
+        ),
+        text + _text_footer(),
+    )
+
+
+# ---------------------------------------------------------------------
+# Citas
+# ---------------------------------------------------------------------
+def _appointments_link(appointment) -> str:
+    return _button(_site_url("/panel/cliente/citas"), "Ver mis citas") if appointment.user_id else ""
+
+
+def appointment_confirmed(*, appointment) -> RenderedEmail:
+    rows = _appointment_rows(appointment)
+    body = (
+        _p(f"Hola {_esc(appointment.customer_first_name)},")
+        + _p("Tu cita quedó confirmada. Estos son los detalles:")
+        + _detail_rows(rows)
+        + _appointments_link(appointment)
+        + _p("Si no puedes asistir, cancela o reprograma con anticipación para liberar el espacio.", muted=True)
+    )
+    text = (
+        f"Hola {appointment.customer_first_name},\n\n"
+        "Tu cita quedó confirmada.\n\n"
+        + _rows_as_text(rows)
+        + "\nSi no puedes asistir, cancela o reprograma con anticipación.\n"
+    )
+    return RenderedEmail(
+        f"Cita confirmada: {appointment.service_name} — BeautyLux",
+        _wrap(title="Tu cita está confirmada", preheader=_appointment_when(appointment), body_html=body),
+        text + _text_footer(),
+    )
+
+
+def appointment_rescheduled(*, appointment, previous_date, previous_start) -> RenderedEmail:
+    rows = [("Horario anterior", f"{format_date_long(previous_date)}, {format_time(previous_start)}")]
+    rows += [("Nuevo horario" if label == "Fecha y hora" else label, value) for label, value in _appointment_rows(appointment)]
+    body = (
+        _p(f"Hola {_esc(appointment.customer_first_name)},")
+        + _p(f"Tu cita <strong>{_esc(appointment.appointment_number)}</strong> cambió de horario:")
+        + _detail_rows(rows)
+        + _appointments_link(appointment)
+        + _p("Si no reconoces este cambio, contáctanos.", muted=True)
+    )
+    text = (
+        f"Hola {appointment.customer_first_name},\n\n"
+        f"Tu cita {appointment.appointment_number} cambió de horario.\n\n"
+        + _rows_as_text(rows)
+        + "\nSi no reconoces este cambio, contáctanos.\n"
+    )
+    return RenderedEmail(
+        f"Tu cita {appointment.appointment_number} cambió de horario — BeautyLux",
+        _wrap(
+            title="Reprogramamos tu cita",
+            preheader=f"Nuevo horario: {_appointment_when(appointment)}",
+            body_html=body,
+        ),
+        text + _text_footer(),
+    )
+
+
+def appointment_cancelled(*, appointment) -> RenderedEmail:
+    rows = _appointment_rows(appointment)
+    body = (
+        _p(f"Hola {_esc(appointment.customer_first_name)},")
+        + _p("Tu cita fue cancelada:")
+        + _detail_rows(rows)
+        + _button(_site_url("/servicios"), "Agendar otra cita")
+        + _p("Si no pediste esta cancelación, contáctanos.", muted=True)
+    )
+    text = (
+        f"Hola {appointment.customer_first_name},\n\n"
+        "Tu cita fue cancelada.\n\n"
+        + _rows_as_text(rows)
+        + f"\nAgenda otra cita en {_site_url('/servicios')}\n"
+    )
+    return RenderedEmail(
+        f"Cita cancelada: {appointment.service_name} — BeautyLux",
+        _wrap(
+            title="Tu cita fue cancelada",
+            preheader=f"Cita {appointment.appointment_number} cancelada.",
+            body_html=body,
+        ),
+        text + _text_footer(),
+    )
+
+
+# ---------------------------------------------------------------------
+# Factura
+# ---------------------------------------------------------------------
+def invoice_issued(*, invoice, sale_number: str, has_account: bool) -> RenderedEmail:
+    rows = [(detail.description, detail.quantity, format_cop(detail.subtotal)) for detail in invoice.details]
+    totals = [
+        ("Subtotal", format_cop(invoice.subtotal), False),
+        ("IVA incluido (19 %)", format_cop(invoice.tax_total), False),
+        ("Total", format_cop(invoice.total), True),
+    ]
+    body = (
+        _p(f"Hola {_esc(invoice.customer_first_name)},")
+        + _p(f"Adjuntamos en PDF la factura de tu pedido <strong>{_esc(sale_number)}</strong>:")
+        + _highlight(invoice.invoice_number)
+        + _items_table(rows, totals)
+        + _detail_rows([("Fecha de emisión", format_date_long(invoice.issued_at))])
+        + (_button(_site_url("/panel/cliente/pedidos"), "Ver mis pedidos") if has_account else "")
+        + _p("Guarda este correo: la factura es tu soporte de compra.", muted=True)
+    )
+    text = (
+        f"Hola {invoice.customer_first_name},\n\n"
+        f"Adjuntamos en PDF la factura {invoice.invoice_number} de tu pedido {sale_number}.\n\n"
+        + "".join(f"- {name} x {quantity}: {amount}\n" for name, quantity, amount in rows)
+        + "".join(f"{label}: {amount}\n" for label, amount, _ in totals)
+    )
+    return RenderedEmail(
+        f"Tu factura {invoice.invoice_number} — BeautyLux",
+        _wrap(
+            title="Tu factura está lista",
+            preheader=f"Factura {invoice.invoice_number} del pedido {sale_number}.",
+            body_html=body,
+        ),
         text + _text_footer(),
     )
 

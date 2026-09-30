@@ -50,7 +50,7 @@ function DashboardFilters({ value, onChange, onClear }) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6">
         <Input
           type="date"
           label="Desde"

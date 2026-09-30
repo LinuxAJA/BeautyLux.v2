@@ -1,127 +1,93 @@
-import { NavLink, Outlet, useNavigate } from 'react-router';
-import {
-  BarChart3,
-  CalendarDays,
-  LayoutDashboard,
-  ListTree,
-  MessageSquareWarning,
-  Receipt,
-  LogOut,
-  Package,
-  ScrollText,
-  ShoppingBag,
-  ShoppingCart,
-  User,
-  Users,
-  Wrench,
-} from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Link, Outlet, useNavigate } from 'react-router';
+import { Menu } from 'lucide-react';
 
 import FloatingActions from '../chat/FloatingActions';
 import BrandLogo from '../ui/BrandLogo';
+import Button from '../ui/Button';
+import PanelAccount from './PanelAccount';
+import PanelMobileMenu from './PanelMobileMenu';
+import PanelNav from './PanelNav';
 import { useAuth } from '../../hooks/useAuth';
+import usePanelNavSections from '../../hooks/usePanelNavSections';
 import useScrollTop from '../../hooks/useScrollTop';
-import { cn } from '../../utils/cn';
+import { panelNavByRole } from '../../data/panelNav';
 
-const NAV_BY_ROLE = {
-  admin: [
-    { to: '/panel/admin', label: 'Resumen', icon: LayoutDashboard, end: true },
-    { to: '/panel/admin/usuarios', label: 'Usuarios', icon: Users },
-    { to: '/panel/admin/productos', label: 'Productos', icon: Package },
-    { to: '/panel/admin/servicios', label: 'Servicios', icon: Wrench },
-    { to: '/panel/admin/categorias', label: 'Categorías', icon: ListTree },
-    { to: '/panel/admin/citas', label: 'Citas', icon: CalendarDays },
-    { to: '/panel/admin/ventas', label: 'Ventas', icon: ShoppingBag },
-    { to: '/panel/admin/pos', label: 'Punto de venta', icon: ShoppingCart },
-    { to: '/panel/admin/facturas', label: 'Facturación', icon: Receipt },
-    { to: '/panel/admin/reportes', label: 'Reportes', icon: BarChart3 },
-    { to: '/panel/admin/pqr', label: 'PQR', icon: MessageSquareWarning },
-    { to: '/panel/admin/bitacora', label: 'Bitácora', icon: ScrollText },
-  ],
-  employee: [
-    { to: '/panel/empleado', label: 'Resumen', icon: LayoutDashboard, end: true },
-    { to: '/panel/empleado/clientes', label: 'Clientes', icon: Users },
-    { to: '/panel/empleado/productos', label: 'Productos', icon: Package },
-    { to: '/panel/empleado/servicios', label: 'Servicios', icon: Wrench },
-    { to: '/panel/empleado/citas', label: 'Citas', icon: CalendarDays },
-    { to: '/panel/empleado/ventas', label: 'Ventas', icon: ShoppingBag },
-    { to: '/panel/empleado/pos', label: 'Punto de venta', icon: ShoppingCart },
-    { to: '/panel/empleado/facturas', label: 'Facturación', icon: Receipt },
-    { to: '/panel/empleado/pqr', label: 'PQR', icon: MessageSquareWarning },
-  ],
-  client: [
-    { to: '/panel/cliente', label: 'Mi perfil', icon: User, end: true },
-    { to: '/panel/cliente/pedidos', label: 'Mis pedidos', icon: Package },
-    { to: '/panel/cliente/citas', label: 'Mis citas', icon: CalendarDays },
-    { to: '/panel/cliente/pqr', label: 'Mis PQR', icon: MessageSquareWarning },
-  ],
-};
+const MOBILE_MENU_ID = 'panel-mobile-menu';
 
-/** Layout de los paneles autenticados: barra lateral por rol + contenido. */
+/**
+ * Layout de los paneles autenticados: barra lateral por rol + contenido.
+ *
+ * La barra lateral es `sticky` a la altura de la ventana: no se va con el
+ * scroll del contenido y "Cerrar sesión" queda siempre a la vista. Solo la
+ * lista de enlaces se desplaza, y únicamente si la pantalla es muy baja. El
+ * scroll sigue siendo el de la ventana (del que depende `useScrollTop`).
+ */
 function DashboardLayout() {
   useScrollTop();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = NAV_BY_ROLE[user.role.name] ?? [];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const sections = panelNavByRole[user.role.name] ?? [];
+  const { isOpen, toggle, activeLabel } = usePanelNavSections(sections, user.role.name);
+  const navProps = { sections, isOpen, onToggle: toggle, activeLabel };
+
+  const closeMenu = useCallback(() => setIsMenuOpen(false), []);
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
   };
 
+  const homeLink = (
+    <Link
+      to="/"
+      aria-label="BeautyLux, volver al sitio web"
+      title="Volver al sitio web"
+      className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <BrandLogo size="sm" withClaim={false} />
+    </Link>
+  );
+
   return (
     <div className="flex min-h-screen bg-muted/40">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
-        <div className="border-b border-border p-5">
-          <BrandLogo size="sm" withClaim={false} />
-        </div>
-
-        <nav className="flex-1 space-y-1 p-4" aria-label="Navegación del panel">
-          {items.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition',
-                  isActive ? 'bg-blush/40 text-primary' : 'text-foreground/70 hover:bg-muted',
-                )
-              }
-            >
-              <Icon className="size-4" aria-hidden="true" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="border-t border-border p-4">
-          <p className="mb-3 truncate text-xs text-muted-foreground">
-            {user.firstName} {user.lastName} · {user.role.label}
-          </p>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-            Cerrar sesión
-          </button>
-        </div>
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
+        <div className="border-b border-border px-5 py-4">{homeLink}</div>
+        <PanelNav {...navProps} className="flex-1 overflow-y-auto p-3" />
+        <PanelAccount user={user} onLogout={handleLogout} />
       </aside>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
-          <BrandLogo size="sm" withClaim={false} />
-          <button type="button" onClick={handleLogout} className="text-sm font-medium text-destructive">
-            Salir
-          </button>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
+          {homeLink}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Abrir el menú del panel"
+            aria-expanded={isMenuOpen}
+            aria-controls={MOBILE_MENU_ID}
+            onClick={() => setIsMenuOpen(true)}
+          >
+            <Menu />
+          </Button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {/* El padding inferior extra deja que el final de cada página (p. ej.
+            la paginación) suba por encima de la torre de FloatingActions. */}
+        <main className="flex-1 px-4 pb-24 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8">
           <Outlet />
         </main>
       </div>
 
+      <PanelMobileMenu
+        id={MOBILE_MENU_ID}
+        isOpen={isMenuOpen}
+        onClose={closeMenu}
+        navProps={navProps}
+        user={user}
+        onLogout={handleLogout}
+      />
       <FloatingActions />
     </div>
   );

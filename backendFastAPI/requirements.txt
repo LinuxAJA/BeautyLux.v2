@@ -11,6 +11,7 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
 python-multipart==0.0.20
 slowapi==0.1.9
+limits==5.8.0
 reportlab==5.0.1
 openpyxl==3.1.5
 google-genai==2.25.0

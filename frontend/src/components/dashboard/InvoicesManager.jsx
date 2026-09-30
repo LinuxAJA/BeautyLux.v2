@@ -4,7 +4,9 @@ import { Download } from 'lucide-react';
 import Button from '../ui/Button';
 import DataTable from './DataTable';
 import InvoiceStatusBadge from './InvoiceStatusBadge';
+import PageHeader from './PageHeader';
 import { useApi } from '../../hooks/useApi';
+import usePagination from '../../hooks/usePagination';
 import * as invoicesService from '../../services/invoices.service';
 import { formatPrice } from '../../data/products';
 import { saveBlob } from '../../utils/download';
@@ -15,15 +17,18 @@ function InvoicesManager() {
   const [downloadingId, setDownloadingId] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
 
-  const { data, isLoading, error } = useApi(
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error } = useApi(
     () =>
       invoicesService.listInvoices({
         search,
-        perPage: 50,
+        page,
+        perPage: 10,
         orderBy: 'issuedAt',
         orderDir: 'desc',
       }),
-    [search],
+    [search, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -71,7 +76,10 @@ function InvoicesManager() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Facturación</h1>
+      <PageHeader
+        title="Facturación"
+        description="Facturas emitidas. Se generan solas al marcar una venta como pagada."
+      />
 
       {downloadError && (
         <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
@@ -80,12 +88,15 @@ function InvoicesManager() {
       )}
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="facturas"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por factura, venta o cliente..."
         emptyMessage="No hay facturas emitidas todavía."
       />

@@ -6,7 +6,9 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DataTable from '../../../components/dashboard/DataTable';
 import InvoiceDownloadButton from '../../../components/common/InvoiceDownloadButton';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
+import usePagination from '../../../hooks/usePagination';
 import * as salesService from '../../../services/sales.service';
 import { formatPrice } from '../../../data/products';
 
@@ -28,9 +30,11 @@ function ClientOrders() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
-  const { data, isLoading, error } = useApi(
-    () => salesService.listSales({ search, perPage: 50, orderBy: 'soldAt', orderDir: 'desc' }),
-    [search],
+  const { page, setPage, withReset } = usePagination();
+
+  const { data, meta, isLoading, error } = useApi(
+    () => salesService.listSales({ search, page, perPage: 10, orderBy: 'soldAt', orderDir: 'desc' }),
+    [search, page],
   );
 
   const rows = useMemo(() => data ?? [], [data]);
@@ -74,15 +78,21 @@ function ClientOrders() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Mis pedidos</h1>
+      <PageHeader
+        title="Mis pedidos"
+        description="Tus compras y el estado de cada una."
+      />
 
       <DataTable
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="pedidos"
         columns={columns}
         rows={rows}
         isLoading={isLoading}
         error={error}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={withReset(setSearch)}
         searchPlaceholder="Buscar por número de pedido..."
         emptyMessage="Todavía no has hecho ningún pedido."
       />

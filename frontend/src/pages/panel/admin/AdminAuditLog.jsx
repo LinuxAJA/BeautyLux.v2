@@ -1,5 +1,7 @@
 import DataTable from '../../../components/dashboard/DataTable';
+import PageHeader from '../../../components/dashboard/PageHeader';
 import { useApi } from '../../../hooks/useApi';
+import usePagination from '../../../hooks/usePagination';
 import * as metaService from '../../../services/meta.service';
 
 const ACTION_LABELS = {
@@ -28,7 +30,9 @@ const ACTION_LABELS = {
 };
 
 function AdminAuditLog() {
-  const { data, isLoading, error } = useApi(() => metaService.getAuditLogs({ perPage: 50 }), []);
+  const { page, setPage } = usePagination();
+
+  const { data, meta, isLoading, error } = useApi(() => metaService.getAuditLogs({ page, perPage: 10 }), [page]);
 
   const columns = [
     { key: 'createdAt', header: 'Fecha', render: (row) => new Date(row.createdAt).toLocaleString('es-CO') },
@@ -40,8 +44,20 @@ function AdminAuditLog() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-2xl font-semibold">Bitácora de auditoría</h1>
-      <DataTable columns={columns} rows={data ?? []} isLoading={isLoading} error={error} emptyMessage="Sin eventos registrados." />
+      <PageHeader
+        title="Bitácora de auditoría"
+        description="Registro de las acciones realizadas en el sistema."
+      />
+      <DataTable
+        columns={columns}
+        rows={data ?? []}
+        isLoading={isLoading}
+        error={error}
+        emptyMessage="Sin eventos registrados."
+        meta={meta}
+        onPageChange={setPage}
+        itemLabel="eventos"
+      />
     </div>
   );
 }

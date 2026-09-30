@@ -19,7 +19,9 @@ from datetime import date, datetime
 
 from sqlalchemy.exc import IntegrityError
 
+from app.core.email_templates import invoice_issued
 from app.core.errors import BadRequestError, ConflictError, NotFoundError
+from app.core.mailer import Attachment
 from app.core.pagination import build_meta
 from app.models.invoice import Invoice
 from app.models.invoice_detail import InvoiceDetail
@@ -27,6 +29,7 @@ from app.repositories.invoice import invoice_repository
 from app.repositories.sale import sale_repository
 from app.schemas.invoice import InvoiceOut
 from app.services.audit import audit_service
+from app.services.email import email_service
 from app.services.pdf_renderer import render_invoice_pdf
 
 STAFF_ROLES = ("admin", "employee")
@@ -117,6 +120,25 @@ class InvoiceService:
         )
 
         created = invoice_repository.find_by_id_with_sale(db, invoice.id)
+
+        # El PDF se genera aquí, con la factura recién cargada, y viaja como
+        # bytes en la bandeja de salida: el hilo de envío no toca la BD. Sin
+        # correo (venta POS a consumidor final) ni siquiera se genera.
+        if created.customer_email:
+            email_service.queue(
+                db,
+                kind="invoice_issued",
+                to=created.customer_email,
+                rendered=invoice_issued(
+                    invoice=created, sale_number=sale.sale_number, has_account=sale.user_id is not None
+                ),
+                user_id=sale.user_id,
+                entity="invoices",
+                entity_id=created.id,
+                attachments=[
+                    Attachment(filename=f"{created.invoice_number}.pdf", content=render_invoice_pdf(created))
+                ],
+            )
         return InvoiceOut.from_model(created, with_details=True)
 
     def _insert_with_number(self, db, data: dict, *, attempts: int = 3) -> Invoice:
